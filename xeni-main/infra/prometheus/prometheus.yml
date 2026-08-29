@@ -1,0 +1,47 @@
+# ============================================================
+# Prometheus Configuration — XENI AI E-Commerce Command Center
+# ============================================================
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  scrape_timeout: 10s
+
+scrape_configs:
+  # ── Go API Gateway ──
+  - job_name: "xeni-gateway"
+    static_configs:
+      - targets: ["gateway:8080"]
+    metrics_path: /metrics
+    scrape_interval: 10s
+
+  # ── Python AI Workers (E-Commerce Agents) ──
+  - job_name: "xeni-worker-conversation"
+    static_configs:
+      - targets: ["worker-conversation:8001"]
+    metrics_path: /metrics
+
+  - job_name: "xeni-worker-order"
+    static_configs:
+      - targets: ["worker-order:8002"]
+    metrics_path: /metrics
+
+  - job_name: "xeni-worker-inventory"
+    static_configs:
+      - targets: ["worker-inventory:8003"]
+    metrics_path: /metrics
+
+  - job_name: "xeni-worker-creative"
+    static_configs:
+      - targets: ["worker-creative:8004"]
+    metrics_path: /metrics
+
+  - job_name: "xeni-worker-intelligence"
+    static_configs:
+      - targets: ["worker-intelligence:8005"]
+    metrics_path: /metrics
+
+  # ── Prometheus self-monitoring ──
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]

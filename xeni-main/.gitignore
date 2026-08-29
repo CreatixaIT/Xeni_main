@@ -1,0 +1,65 @@
+# ============================================================
+# XENI — .gitignore
+# ============================================================
+
+# Environment files (contain secrets)
+.env
+.env.local
+.env.production
+gateway/.env
+frontend/.env
+frontend/.env.local
+workers/.env
+xeni_secrets_backup.txt
+env_production_backup.env
+
+# Dependencies
+node_modules/
+vendor/
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Build artifacts
+.next/
+out/
+dist/
+build/
+*.exe
+gateway/gateway
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Docker volumes (local)
+postgres_data/
+mongodb_data/
+redis_data/
+rabbitmq_data/
+prometheus_data/
+grafana_data/
+
+# Go
+go.sum
+*.test
+coverage.out
+
+# Python
+*.egg-info/
+.pytest_cache/
+htmlcov/
+.coverage
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini

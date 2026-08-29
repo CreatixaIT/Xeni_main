@@ -1,0 +1,26 @@
+name: Debug Droplet Logs
+
+on:
+  workflow_dispatch:
+    inputs:
+      lines:
+        description: 'Number of log lines to tail'
+        required: true
+        default: '100'
+
+jobs:
+  fetch_logs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch Gateway Logs
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            echo "==== GATEWAY LOGS ===="
+            docker logs xeni-gateway --tail ${{ github.event.inputs.lines }} || true
+            
+            echo "==== NGINX LOGS ===="
+            docker logs xeni-nginx --tail 20 || true

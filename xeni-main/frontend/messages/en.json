@@ -1,0 +1,310 @@
+{
+  "nav": {
+    "home": "Home",
+    "login": "Sign In",
+    "register": "Sign Up",
+    "dashboard": "Dashboard",
+    "billing": "Billing",
+    "settings": "Settings",
+    "logout": "Logout",
+    "your_team": "Your Team",
+    "pricing": "Pricing",
+    "how_i_work": "How I Work",
+    "faq": "FAQ"
+  },
+  "landing": {
+    "hero_title": "Your Online Shop's Smart Assistant",
+    "hero_subtitle": "\"Hi there! I’m Xeni, and I’ve been designed to take the 'busy work' off your plate. I handle your customer conversations with a human touch, processing orders from start to finish. I verify all the payments, track every item in your stock, and even create your marketing content. You build the brand; I’ll run the shop.\"",
+    "cta": "Start Selling Smarter",
+    "cta_secondary": "Explore the Agents",
+    "cta_login": "Sign In to Dashboard",
+    "features_title": "Meet Your New Dream Team",
+    "features_subtitle": "I’ve assembled five specialized smart assistant to live inside your business. They don’t just \"process data” they take ownership of your daily hustle so you can focus on the big picture.",
+    "learn_more": "Learn More"
+  },
+  "agents": {
+    "conversation": {
+      "name": "The Front Desk",
+      "description": "\"I’m your Front Desk. I handle the 'Hello' so you don't have to. I stay awake 24/7 on Messenger to chat with your customers in Bangla and English. If a question gets too personal or tricky, I’ll gently tap you on the shoulder to take over.\"",
+      "features": [
+        "24/7 auto-reply in Bangla & English",
+        "Smart intent detection (product inquiry, order status, complaint)",
+        "Product recommendation from your catalog",
+        "Human handoff with full conversation context"
+      ],
+      "locked_message": "Available on Starter plan and above",
+      "run_button": "Configure Auto-Reply"
+    },
+    "order": {
+      "name": "The Operations Lead",
+      "description": "\"I’m your Operations Lead. My job is to get orders out the door. I verify every payment and instantly book the pickup with Pathao or Steadfast. I make sure the journey from 'ordered' to 'delivered' is a straight line.\"",
+      "features": [
+        "bKash & Nagad payment verification",
+        "Automatic order creation from chat",
+        "Pathao / Steadfast courier booking",
+        "Real-time delivery status tracking"
+      ],
+      "locked_message": "Available on Professional plan and above",
+      "run_button": "Process Orders"
+    },
+    "inventory": {
+      "name": "The Inventory Manager",
+      "description": "\"I’m your Inventory Manager. I keep a hawk-eye on your stock levels. I’ll make sure you never oversell a popular item, and I’ll send you a 'heads-up' when it’s time to restock based on how fast things are moving.\"",
+      "features": [
+        "Real-time stock level monitoring",
+        "Low-stock alerts & auto-notifications",
+        "Oversell prevention across Messenger orders",
+        "Data-driven restock recommendations"
+      ],
+      "locked_message": "Available on Professional plan and above",
+      "run_button": "Check Stock"
+    },
+    "creative": {
+      "name": "The Creative Director",
+      "description": "\"I’m your Creative Director. I take your products and give them a voice. I’ll write your Facebook captions and design your ad images in both languages, making sure your brand looks professional and stops the scroll every single time.\"",
+      "features": [
+        "AI product description generation (Bangla & English)",
+        "Facebook & Instagram caption creation",
+        "Promotional ad image generation",
+        "SEO-optimized product listing content"
+      ],
+      "locked_message": "Available on Premium plan only",
+      "run_button": "Generate Content"
+    },
+    "intelligence": {
+      "name": "The Growth Consultant",
+      "description": "\"I look past the numbers to tell you the story of your growth. I’ll point out your best-selling hours, identify which products are your real winners, and suggest exactly where you should invest next. I don't just give you reports; I give you a roadmap to scale.\"",
+      "features": [
+        "Revenue trend analysis & forecasting",
+        "Peak selling hour identification",
+        "Top product & customer insights",
+        "AI-driven growth recommendations"
+      ],
+      "locked_message": "Available on Premium plan only",
+      "run_button": "Get Insights"
+    }
+  },
+  "auth": {
+    "email": "Email address",
+    "password": "Password",
+    "full_name": "Full Name",
+    "welcome_back": "Welcome Back",
+    "create_account": "Create Account",
+    "forgot_password": "Forgot Password?",
+    "no_account": "Don't have an account?",
+    "has_account": "Already have an account?",
+    "google_signin": "Continue with Google",
+    "google_login": "Continue with Google",
+    "or": "or",
+    "verify_title": "Verify Your Email",
+    "verify_subtitle": "Enter the 6-digit code sent to your email",
+    "login_title": "Welcome Back",
+    "login_subtitle": "Sign in to your XENI account",
+    "register_title": "Create Account",
+    "register_subtitle": "Start automating your online shop for free"
+  },
+  "billing": {
+    "title": "Billing",
+    "starter": "Starter",
+    "professional": "Professional",
+    "premium": "Premium",
+    "enterprise": "Enterprise",
+    "free": "Free",
+    "basic": "Basic",
+    "pro": "Pro",
+    "month": "/month",
+    "current": "Current Plan",
+    "current_plan": "Current Plan",
+    "subscribe": "Subscribe Now",
+    "pay_sslcommerz": "Pay with bKash/Nagad",
+    "storage": "storage",
+    "tasks_per_day": "tasks/day",
+    "orders_per_month": "orders/month",
+    "pages": "FB Pages",
+    "unlimited": "Unlimited",
+    "upgrade": "Upgrade Plan",
+    "contact_sales": "Contact Sales",
+    "custom_pricing": "Custom Pricing"
+  },
+  "settings": {
+    "title": "Settings",
+    "profile": "Profile",
+    "security": "Security",
+    "language": "Language",
+    "save": "Save Changes",
+    "save_changes": "Save Changes",
+    "change_password": "Change Password",
+    "current_password": "Current password",
+    "new_password": "New password",
+    "enable_2fa": "Enable Two-Factor Auth",
+    "select_language": "Language"
+  },
+  "dashboard": {
+    "welcome": "Welcome back",
+    "tasks_today": "Tasks Today",
+    "agents_available": "Agents Available",
+    "plan": "Current Plan",
+    "recent_tasks": "Recent Tasks",
+    "quick_actions": "Quick Actions"
+  },
+  "common": {
+    "loading": "Loading...",
+    "submit": "Submit",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "back": "Back",
+    "save": "Save",
+    "delete": "Delete",
+    "search": "Search",
+    "view_all": "View All"
+  },
+  "setup": {
+    "title": "Setup Guide",
+    "subtitle": "Follow these steps to set up your XENI AI agents and integrations",
+    "required": "Required",
+    "recommended": "Recommended",
+    "optional": "Optional",
+    "steps_label": "steps",
+    "need_help": "Need help?",
+    "help_text": "If you encounter any issues during setup, our support team is here to help.",
+    "contact_support": "Contact Support",
+    "facebook": {
+      "title": "Connect Facebook Page",
+      "steps": [
+        {
+          "title": "Go to FB Pages section",
+          "description": "Navigate to \"FB Pages\" in the sidebar menu. Click \"Connect Page\" to begin the Facebook authorization process.",
+          "action": "Go to FB Pages"
+        },
+        {
+          "title": "Authorize XENI",
+          "description": "A Facebook popup will appear. Log in with your Facebook account (the one that manages your Business Page). Grant XENI permission to manage messages on your Page."
+        },
+        {
+          "title": "Select Your Page",
+          "description": "After authorization, select which Facebook Page you want to connect. The Conversation Agent will automatically start responding to messages on this page."
+        },
+        {
+          "title": "Test It",
+          "description": "Send a test message to your Facebook Page from another account. Within seconds, the AI should automatically reply. If it doesn't, check the Inbox section for AI/Human mode toggle."
+        }
+      ]
+    },
+    "shop": {
+      "title": "Set Up Your Shop",
+      "steps": [
+        {
+          "title": "Create your shop",
+          "description": "Go to \"My Shop\" and fill in your shop name, phone number, address, and other details. This information is used for order processing and courier booking.",
+          "action": "Go to My Shop"
+        },
+        {
+          "title": "Add products",
+          "description": "Go to \"Products\" and add your product catalog. Include product name, price (in BDT), stock quantity, and a clear description. The AI uses this information to recommend products to customers.",
+          "action": "Go to Products"
+        },
+        {
+          "title": "Set up categories",
+          "description": "Organize products into categories for easier management. The Conversation Agent references categories when helping customers find products."
+        }
+      ]
+    },
+    "payment": {
+      "title": "Payment Verification (bKash/Nagad)",
+      "steps": [
+        {
+          "title": "How bKash/Nagad verification works",
+          "description": "When a customer sends a payment via bKash or Nagad, they share the Transaction ID (TrxID) with you via Messenger. The Order Processing Agent can verify this payment automatically."
+        },
+        {
+          "title": "For automatic verification (Professional+ plan)",
+          "description": "If you have the Professional plan or above, the Order Processing Agent will automatically detect payment messages, extract the TrxID, and verify it against bKash/Nagad APIs."
+        },
+        {
+          "title": "For manual verification",
+          "description": "You can manually verify payments in the Orders section. Click on an order, enter the TrxID, and mark it as \"verified\". The system will then proceed to courier booking if auto-courier is enabled."
+        }
+      ]
+    },
+    "courier": {
+      "title": "Courier Integration (Pathao/Steadfast)",
+      "steps": [
+        {
+          "title": "Pathao Courier",
+          "description": "XENI integrates with Pathao for automated courier pickup booking. When an order is verified, the system can automatically book a Pathao pickup from your shop address."
+        },
+        {
+          "title": "Steadfast Courier",
+          "description": "For Steadfast integration, you'll need your Steadfast API key and Secret Key. Contact Steadfast to get your merchant credentials, then share them with XENI support."
+        },
+        {
+          "title": "How it works",
+          "description": "Once configured: 1) Detect a verified payment 2) Auto-create the courier booking 3) Share tracking number with customer via Messenger 4) Update order status in your dashboard."
+        }
+      ]
+    },
+    "creative": {
+      "title": "Creative Agent Setup",
+      "steps": [
+        {
+          "title": "What the Creative Agent does",
+          "description": "The Creative Agent generates product descriptions, social media captions, and promotional ad images using AI. It works in both Bangla and English."
+        },
+        {
+          "title": "How to use it",
+          "description": "Go to \"Creative\" in the sidebar. Select the type of content you want (caption, product description, or image). Enter your product details and click \"Generate\".",
+          "action": "Go to Creative Studio"
+        },
+        {
+          "title": "Requirements",
+          "description": "The Creative Agent requires the Premium plan. No additional API keys are needed from you — it's all handled by XENI's infrastructure."
+        }
+      ]
+    },
+    "intelligence": {
+      "title": "Sales Intelligence Setup",
+      "steps": [
+        {
+          "title": "What the Intelligence Agent does",
+          "description": "The Sales Intelligence Agent analyzes your sales data to identify trends, peak selling hours, top-performing products, and provides AI recommendations to grow your business."
+        },
+        {
+          "title": "How to use it",
+          "description": "Go to \"Analytics\" in the sidebar. Click \"Generate AI Insights\" to run the Intelligence Agent. It analyzes orders, conversations, and products for data-driven recommendations.",
+          "action": "Go to Analytics"
+        },
+        {
+          "title": "Requirements",
+          "description": "Requires the Premium plan and at least some order history for meaningful insights. The more data you have, the better the recommendations."
+        }
+      ]
+    },
+    "subscription": {
+      "title": "Subscription & Billing",
+      "steps": [
+        {
+          "title": "Choose your plan",
+          "description": "Go to \"Billing\" to see available plans. Starter (৳2,500/mo) includes the Conversation Agent. Professional (৳7,500/mo) adds Order Processing and Inventory. Premium (৳25,000/mo) includes all 5 agents.",
+          "action": "Go to Billing"
+        },
+        {
+          "title": "Payment methods",
+          "description": "Pay via SSLCommerz which supports bKash, Nagad, bank cards (Visa/Mastercard), and internet banking. All pricing is in BDT. Your subscription renews monthly."
+        },
+        {
+          "title": "Upgrade or downgrade",
+          "description": "You can switch plans anytime. Upgrades take effect immediately. Downgrades take effect at the end of your current billing cycle."
+        }
+      ]
+    }
+  },
+  "errors": {
+    "required": "This field is required",
+    "invalid_email": "Please enter a valid email",
+    "invalid_credentials": "Invalid email or password",
+    "password_min": "Password must be at least 8 characters",
+    "server_error": "Something went wrong. Please try again.",
+    "upgrade_required": "This feature requires a plan upgrade",
+    "subscription_needed": "You need an active subscription to use this feature"
+  }
+}

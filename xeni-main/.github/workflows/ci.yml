@@ -1,0 +1,160 @@
+# ============================================================
+# XENI — CI/CD Pipeline (GitHub Actions)
+# ============================================================
+name: XENI CI/CD
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  # ── Lint & Test — Go Gateway ──
+  gateway:
+    name: Gateway (Go)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: gateway
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: "1.24"
+          cache: false
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Lint
+        run: |
+          go mod tidy
+          go vet ./...
+
+      - name: Test
+        run: go test -v -race -coverprofile=coverage.out ./...
+
+      - name: Build
+        run: CGO_ENABLED=0 go build -o gateway ./cmd/main.go
+
+  # ── Lint & Test — Next.js Frontend ──
+  frontend:
+    name: Frontend (Next.js)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:8080
+          NEXT_PUBLIC_WS_URL: ws://localhost:8080/ws
+
+  # ── Lint & Test — Python Workers ──
+  workers:
+    name: Workers (Python)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: workers
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Lint
+        run: pip install ruff && ruff check app/
+
+      - name: Type check
+        run: pip install mypy && mypy app/ --ignore-missing-imports
+
+  # ── Docker Build & Push ──
+  docker:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    needs: [gateway, frontend, workers]
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      packages: write
+
+    strategy:
+      matrix:
+        service:
+          - { name: gateway, context: ./gateway, target: production }
+          - { name: frontend, context: ./frontend, target: production }
+          - { name: workers, context: ./workers, target: "" }
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Calculate Lowercase Repo Name
+        run: echo "IMAGE_PREFIX=${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
+
+      - name: Build and push
+        uses: docker/build-push-action@v7
+        with:
+          context: ${{ matrix.service.context }}
+          target: ${{ matrix.service.target }}
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.service.name }}:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.service.name }}:${{ github.sha }}
+
+  # ── Docker Compose Validation ──
+  compose-validate:
+    name: Compose Validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Create env files
+        run: |
+          cp .env.example .env
+          cp gateway/.env.example gateway/.env
+          cp frontend/.env.example frontend/.env
+          cp workers/.env.example workers/.env
+
+      - name: Validate docker-compose
+        run: docker compose config --quiet

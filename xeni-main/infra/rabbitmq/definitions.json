@@ -1,0 +1,260 @@
+{
+  "rabbit_version": "3.13.0",
+  "vhosts": [
+    {
+      "name": "xeni_vhost"
+    }
+  ],
+  "exchanges": [
+    {
+      "name": "xeni.tasks",
+      "vhost": "xeni_vhost",
+      "type": "direct",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    },
+    {
+      "name": "xeni.results",
+      "vhost": "xeni_vhost",
+      "type": "direct",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    },
+    {
+      "name": "xeni.dlx",
+      "vhost": "xeni_vhost",
+      "type": "direct",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    }
+  ],
+  "queues": [
+    {
+      "name": "conversation_tasks",
+      "vhost": "xeni_vhost",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-dead-letter-exchange": "xeni.dlx",
+        "x-dead-letter-routing-key": "conversation_tasks_dlq",
+        "x-message-ttl": 3600000
+      }
+    },
+    {
+      "name": "order_tasks",
+      "vhost": "xeni_vhost",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-dead-letter-exchange": "xeni.dlx",
+        "x-dead-letter-routing-key": "order_tasks_dlq",
+        "x-message-ttl": 3600000
+      }
+    },
+    {
+      "name": "inventory_tasks",
+      "vhost": "xeni_vhost",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-dead-letter-exchange": "xeni.dlx",
+        "x-dead-letter-routing-key": "inventory_tasks_dlq",
+        "x-message-ttl": 3600000
+      }
+    },
+    {
+      "name": "creative_tasks",
+      "vhost": "xeni_vhost",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-dead-letter-exchange": "xeni.dlx",
+        "x-dead-letter-routing-key": "creative_tasks_dlq",
+        "x-message-ttl": 3600000
+      }
+    },
+    {
+      "name": "intelligence_tasks",
+      "vhost": "xeni_vhost",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-dead-letter-exchange": "xeni.dlx",
+        "x-dead-letter-routing-key": "intelligence_tasks_dlq",
+        "x-message-ttl": 3600000
+      }
+    },
+    {
+      "name": "comment_tasks",
+      "vhost": "xeni_vhost",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-dead-letter-exchange": "xeni.dlx",
+        "x-dead-letter-routing-key": "comment_tasks_dlq",
+        "x-message-ttl": 3600000
+      }
+    },
+    {
+      "name": "task_results",
+      "vhost": "xeni_vhost",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "conversation_tasks_dlq",
+      "vhost": "xeni_vhost",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "order_tasks_dlq",
+      "vhost": "xeni_vhost",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "inventory_tasks_dlq",
+      "vhost": "xeni_vhost",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "creative_tasks_dlq",
+      "vhost": "xeni_vhost",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "intelligence_tasks_dlq",
+      "vhost": "xeni_vhost",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "comment_tasks_dlq",
+      "vhost": "xeni_vhost",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    }
+  ],
+  "bindings": [
+    {
+      "source": "xeni.tasks",
+      "vhost": "xeni_vhost",
+      "destination": "conversation_tasks",
+      "destination_type": "queue",
+      "routing_key": "conversation",
+      "arguments": {}
+    },
+    {
+      "source": "xeni.tasks",
+      "vhost": "xeni_vhost",
+      "destination": "order_tasks",
+      "destination_type": "queue",
+      "routing_key": "order",
+      "arguments": {}
+    },
+    {
+      "source": "xeni.tasks",
+      "vhost": "xeni_vhost",
+      "destination": "inventory_tasks",
+      "destination_type": "queue",
+      "routing_key": "inventory",
+      "arguments": {}
+    },
+    {
+      "source": "xeni.tasks",
+      "vhost": "xeni_vhost",
+      "destination": "creative_tasks",
+      "destination_type": "queue",
+      "routing_key": "creative",
+      "arguments": {}
+    },
+    {
+      "source": "xeni.tasks",
+      "vhost": "xeni_vhost",
+      "destination": "intelligence_tasks",
+      "destination_type": "queue",
+      "routing_key": "intelligence",
+      "arguments": {}
+    },
+    {
+      "source": "xeni.tasks",
+      "vhost": "xeni_vhost",
+      "destination": "comment_tasks",
+      "destination_type": "queue",
+      "routing_key": "comment",
+      "arguments": {}
+    },
+    {
+      "source": "xeni.results",
+      "vhost": "xeni_vhost",
+      "destination": "task_results",
+      "destination_type": "queue",
+      "routing_key": "task_result",
+      "arguments": {}
+    },
+    {
+      "source": "xeni.dlx",
+      "vhost": "xeni_vhost",
+      "destination": "conversation_tasks_dlq",
+      "destination_type": "queue",
+      "routing_key": "conversation_tasks_dlq",
+      "arguments": {}
+    },
+    {
+      "source": "xeni.dlx",
+      "vhost": "xeni_vhost",
+      "destination": "order_tasks_dlq",
+      "destination_type": "queue",
+      "routing_key": "order_tasks_dlq",
+      "arguments": {}
+    },
+    {
+      "source": "xeni.dlx",
+      "vhost": "xeni_vhost",
+      "destination": "inventory_tasks_dlq",
+      "destination_type": "queue",
+      "routing_key": "inventory_tasks_dlq",
+      "arguments": {}
+    },
+    {
+      "source": "xeni.dlx",
+      "vhost": "xeni_vhost",
+      "destination": "creative_tasks_dlq",
+      "destination_type": "queue",
+      "routing_key": "creative_tasks_dlq",
+      "arguments": {}
+    },
+    {
+      "source": "xeni.dlx",
+      "vhost": "xeni_vhost",
+      "destination": "intelligence_tasks_dlq",
+      "destination_type": "queue",
+      "routing_key": "intelligence_tasks_dlq",
+      "arguments": {}
+    },
+    {
+      "source": "xeni.dlx",
+      "vhost": "xeni_vhost",
+      "destination": "comment_tasks_dlq",
+      "destination_type": "queue",
+      "routing_key": "comment_tasks_dlq",
+      "arguments": {}
+    }
+  ]
+}
