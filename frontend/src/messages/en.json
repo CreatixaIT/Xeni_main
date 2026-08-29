@@ -1,0 +1,29 @@
+{
+  "Navigation": {
+    "dashboard": "Dashboard",
+    "conversations": "Conversations",
+    "orders": "Orders",
+    "inventory": "Inventory",
+    "creative_studio": "Creative Studio",
+    "intelligence": "Intelligence",
+    "billing": "Billing",
+    "settings": "Settings",
+    "logout": "Logout"
+  },
+  "Dashboard": {
+    "total_users": "Total Users",
+    "revenue": "Revenue Today",
+    "messages_replied": "Messages Replied Today",
+    "orders_processed": "Orders Processed Today",
+    "stock_alerts": "Stock Alerts",
+    "upgrade_to_unlock": "Upgrade to {plan}"
+  },
+  "Common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "view_all": "View all",
+    "status": "Status"
+  }
+}

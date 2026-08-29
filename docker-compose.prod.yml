@@ -1,0 +1,78 @@
+# XENI AI — Production Operations Compose File
+# Overrides local contexts to leverage GHCR deployment images
+# Usage (Automated in Actions): docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+services:
+  # ── Infrastructure Limits ──
+  postgres:
+    mem_limit: 64m
+
+  mongodb:
+    mem_limit: 150m
+
+  redis:
+    mem_limit: 32m
+
+  rabbitmq:
+    mem_limit: 150m
+
+  # ── Application Services ──
+  gateway:
+    image: ghcr.io/xendevhub/xeni/gateway:latest
+    build: null
+    profiles: []
+    restart: always
+    mem_limit: 64m
+    env_file:
+      - ./gateway/.env
+
+  frontend:
+    image: ghcr.io/xendevhub/xeni/frontend:latest
+    build: null
+    profiles: []
+    restart: always
+    mem_limit: 150m
+    env_file:
+      - ./frontend/.env
+
+  worker-conversation:
+    image: ghcr.io/xendevhub/xeni/workers:latest
+    build: null
+    profiles: []
+    restart: always
+    mem_limit: 64m
+
+  worker-order:
+    image: ghcr.io/xendevhub/xeni/workers:latest
+    build: null
+    profiles: []
+    restart: always
+    mem_limit: 64m
+
+  worker-inventory:
+    image: ghcr.io/xendevhub/xeni/workers:latest
+    build: null
+    profiles: []
+    restart: always
+    mem_limit: 64m
+
+  worker-creative:
+    image: ghcr.io/xendevhub/xeni/workers:latest
+    build: null
+    profiles: []
+    restart: always
+    mem_limit: 64m
+
+  worker-intelligence:
+    image: ghcr.io/xendevhub/xeni/workers:latest
+    build: null
+    profiles: []
+    restart: always
+    mem_limit: 64m
+
+  worker-comment:
+    image: ghcr.io/xendevhub/xeni/workers:latest
+    build: null
+    profiles: []
+    restart: always
+    mem_limit: 64m

@@ -1,0 +1,29 @@
+{
+  "Navigation": {
+    "dashboard": "ড্যাশবোর্ড",
+    "conversations": "মেসেজ",
+    "orders": "অর্ডার",
+    "inventory": "স্টক",
+    "creative_studio": "ক্রিয়েটিভ স্টুডিও",
+    "intelligence": "ইনটেলিজেন্স",
+    "billing": "বিলিং",
+    "settings": "সেটিংস",
+    "logout": "লগআউট"
+  },
+  "Dashboard": {
+    "total_users": "মোট ইউজার",
+    "revenue": "আজকের সেলস",
+    "messages_replied": "আজকে রিপ্লাই দেওয়া মেসেজ",
+    "orders_processed": "আজকে প্রসেস হওয়া অর্ডার",
+    "stock_alerts": "স্টক অ্যালার্ট",
+    "upgrade_to_unlock": "{plan} আপগ্রেড করুন"
+  },
+  "Common": {
+    "save": "সেভ করুন",
+    "cancel": "বাতিল",
+    "delete": "ডিলিট",
+    "edit": "এডিট",
+    "view_all": "সবগুলো দেখুন",
+    "status": "স্ট্যাটাস"
+  }
+}

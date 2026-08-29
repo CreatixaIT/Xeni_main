@@ -1,0 +1,68 @@
+# 🚀 Xeni AI Platform - The Ultimate E2E QA Checklist
+
+This is the **exhaustive** manual testing checklist for the Xeni AI OS. It covers every single flow, including edge cases, file uploads, email verifications, and agent behaviors. 
+
+As you test, check the boxes `[ ]`. If any step fails or gives a 500/502 error, or a white block, note what you did so we can fix it!
+
+---
+
+## 🔒 1. Authentication & Security (Full Cycle)
+**Goal:** Verify users can securely onboard, verify email, and recover accounts.
+
+- [x] **Registration Form Validation**: Go to `/register`. Try submitting an empty form or weak password. *Expected: UI shows validation errors.*
+- [x] **Successful Registration**: Sign up with a valid email. *Expected: Success message + Redirected to OTP/Email Verification screen.*
+- [x] **Email Verification (OTP)**: Check your email (via Resend) for the OTP. Enter it on the verification page. *Expected: Successful verification -> Redirect to Dashboard.*
+- [x] **Resend OTP**: Click "Resend Code" on the verification page. *Expected: A new email comes perfectly within 5 seconds.*
+- [x] **Email Login**: Go to `/login` and use the verified email/password. *Expected: Successful login -> Dashboard.*
+- [x] **Incorrect Login**: Try logging in with the wrong password. *Expected: "Invalid credentials" error (No crashes).*
+- [x] **Forgot Password Request**: Go to Forgot Password. Enter your email. *Expected: Success message + Password reset OTP email arrives.*
+- [x] **Reset Password Execution**: Enter the OTP from email and a new password. *Expected: Password changes successfully.*
+- [x] **Login with New Password**: Try logging in with the newly reset password. *Expected: Works perfectly.*
+- [x] **Google OAuth Login**: Click "Continue with Google". *Expected: Popup opens, authenticates, and redirects to Dashboard seamlessly without entering a password.*
+
+## 💳 2. Subscription, Billing & SSLCommerz
+**Goal:** Verify payment gateway initialization, redirects, and data synchronization.
+
+- [x] **Free Tier Check**: Go to Dashboard > Billing. *Expected: Your account should show a default "Starter/Free" plan upon registration.*
+- [x] **Plan Upgrade Selection**: Click "Subscribe/Upgrade" on a premium plan. *Expected: Redirected securely to the SSLCommerz payment page displaying the correct amount in BDT.*
+- [x] **Checkout Success (Test Card)**: On SSLCommerz, use a Mobile Banking or Card option to pay successfully. *Expected: Redirected back to `/dashboard/billing?status=success`. Plan instantly updates to "Active".*
+- [x] **Checkout Cancel**: Click "Subscribe" again, but this time click **Cancel** on the SSLCommerz page. *Expected: Redirected safely back to `/dashboard/billing?status=cancel` without white-page errors.*
+- [x] **Checkout Fail**: On SSLCommerz, purposefully fail the payment. *Expected: Redirected to `/dashboard/billing?status=fail` with a failure message.*
+
+## 🏪 3. Store Setup & Social Integration
+**Goal:** Verify merchant profile configuration and Meta OAuth flow.
+
+- [x] **Profile & Store Settings**: Go to Settings. Update your store name, currency, and address. *Expected: Saves successfully without errors.*
+- [x] **Facebook Page Connection**: In **Settings > Social**, click "Connect with Facebook". *Expected: Meta OAuth window opens. You select a page. The page token is saved securely, and the UI marks it as "Connected".*
+- [x] **Facebook Webhook Verification**: Send a message (e.g., "Hi, what's available?") to your connected Facebook Page from a personal Messenger account. *Expected: The Go Gateway webhook receives it, logs it, and pushes it to RabbitMQ.*
+
+## 📦 4. Inventory & Product Management
+**Goal:** Verify adding products, uploading images, and AI indexing.
+
+- [x] **Add Single Product**: Go to **Products > Add New**. Fill in name, price, description, and stock quantity.
+- [ ] **Product Image Upload**: Upload an image for the product. *Expected: The file uploads successfully to the server/storage and displays properly in the UI.*
+- [x] **Save Product**: Submit the product form. *Expected: Product saves to Database.*
+- [x] **AI Inventory Syncing**: *Expected: The Inventory Agent automatically reads the new product and makes it available for the Chatbot to recommend.*
+
+## 🛒 5. Order Management & Courier APIs
+**Goal:** Verify manual order creation and third-party parcel dispatch.
+
+- [x] **Create Manual Order**: Go to **Orders > Create Order**. Select a product and add dummy customer details. *Expected: Order is saved as "Pending".*
+- [ ] **Push Order to Courier (Steadfast/Pathao)**: Click the "Send to Courier" or similar dispatch button on the order. *Expected: A Consignment ID is successfully generated from the Courier API and attached to the Order in your Dashboard.*
+- [x] **Order Status Update**: Change the order status to "Completed" or "Processing". *Expected: Status updates correctly.*
+
+## 🤖 6. AI Agent Features (The Core OS)
+**Goal:** Test the 5 specialized Python worker agents via RabbitMQ. 
+
+- [x] **Conversation Agent (Chatbot Reply)**: Go to **Inbox / Conversations**. Find the test message you sent from Facebook earlier. *Expected: The AI should have automatically replied to the customer based on store context.*
+- [ ] **Product Query to Agent**: Send exactly "Do you have [Product Name you added]?" from Facebook. *Expected: The AI checks the database via the Inventory Agent and replies with the correct price & stock!*
+- [x] **Creative Agent (Post Generation)**: Go to the **Creative** tab. Ask it to "Generate a Facebook post about my new T-shirt". *Expected: Request goes to Python Worker -> OpenAI -> Returns a beautiful post with emojis and hashtags.*
+- [ ] **Sales Intelligence Agent (Analytics)**: Go to **Analytics** or **Overview**. *Expected: Dashboard graphs load statistics correctly aggregated from the DB without crashing.*
+
+---
+
+### 🚨 How to Report Issues Accurately:
+If **anything** in this list doesn't work exactly as described, please report it like this:
+1. **Which Step Failed:** (e.g., *Product Image Upload*)
+2. **What You Did:** (e.g., *I selected a 2MB JPG image and clicked Save*)
+3. **What Happened:** (e.g., *It gave a loading spinner for 10 seconds then showed "Network Error 500"*)

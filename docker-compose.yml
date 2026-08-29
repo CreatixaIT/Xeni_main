@@ -1,0 +1,277 @@
+# ============================================================
+# XENI AI — Autonomous E-Commerce Command Center
+# Docker Compose — Full Service Stack
+# ============================================================
+# Infrastructure: postgres, mongodb, redis, rabbitmq
+# Application:    gateway, frontend, worker-conversation,
+#                 worker-order, worker-inventory,
+#                 worker-creative, worker-intelligence
+# Observability:  nginx, prometheus, grafana
+# ============================================================
+
+x-worker-common: &worker-common
+  build:
+    context: ./workers
+    dockerfile: Dockerfile
+  env_file:
+    - ./workers/.env
+  networks:
+    - xeni_net
+  depends_on:
+    rabbitmq:
+      condition: service_healthy
+    mongodb:
+      condition: service_healthy
+  restart: unless-stopped
+
+services:
+  # ──────────────────────────────────────────────────────────
+  # INFRASTRUCTURE SERVICES
+  # ──────────────────────────────────────────────────────────
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: xeni-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-xeni}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-xeni_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-xeni_db}
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-xeni} -d ${POSTGRES_DB:-xeni_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - xeni_net
+    restart: unless-stopped
+
+  mongodb:
+    image: mongo:7
+    container_name: xeni-mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-xeni}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-xeni_secret}
+      MONGO_INITDB_DATABASE: xeni_outputs
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - ./infra/mongo/init.js:/docker-entrypoint-initdb.d/01-init.js:ro
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - xeni_net
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: xeni-redis
+    command: redis-server --requirepass ${REDIS_PASSWORD:-xeni_secret} --appendonly yes
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-xeni_secret}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - xeni_net
+    restart: unless-stopped
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: xeni-rabbitmq
+    hostname: xeni-rmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-xeni}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-xeni_secret}
+      RABBITMQ_DEFAULT_VHOST: xeni_vhost
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+      - ./infra/rabbitmq/definitions.json:/etc/rabbitmq/definitions.json:ro
+      - ./infra/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_running"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    networks:
+      - xeni_net
+    restart: unless-stopped
+
+  # ──────────────────────────────────────────────────────────
+  # OBSERVABILITY SERVICES (Nginx Only)
+  # ──────────────────────────────────────────────────────────
+
+  nginx:
+    image: nginx:alpine
+    container_name: xeni-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      gateway:
+        condition: service_started
+      frontend:
+        condition: service_started
+    networks:
+      - xeni_net
+    restart: unless-stopped
+    profiles:
+      - app
+
+  # ──────────────────────────────────────────────────────────
+  # APPLICATION SERVICES (profiles: app)
+  # ──────────────────────────────────────────────────────────
+
+  gateway:
+    build:
+      context: ./gateway
+      dockerfile: Dockerfile
+      target: development
+    container_name: xeni-gateway
+    env_file:
+      - ./gateway/.env
+    environment:
+      PORT: "8080"
+      POSTGRES_URI: "postgres://xeni:xeni_secret@xeni-postgres:5432/xeni_db?sslmode=disable"
+      REDIS_URI: "redis://:xeni_secret@xeni-redis:6379/0"
+      RABBITMQ_URI: "amqp://xeni:xeni_secret@xeni-rabbitmq:5672/xeni_vhost"
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - xeni_net
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: development
+    container_name: xeni-frontend
+    env_file:
+      - ./frontend/.env
+    ports:
+      - "3000:3000"
+    depends_on:
+      gateway:
+        condition: service_started
+    networks:
+      - xeni_net
+    restart: unless-stopped
+
+  # ── AI Workers (E-Commerce Agents) ──
+
+  worker-conversation:
+    <<: *worker-common
+    container_name: xeni-worker-conversation
+    environment:
+      AGENT_TYPE: conversation
+      TASK_QUEUE: conversation_tasks
+      DLQ_NAME: conversation_tasks_dlq
+      PORT: "8001"
+    ports:
+      - "8001:8001"
+
+  worker-order:
+    <<: *worker-common
+    container_name: xeni-worker-order
+    environment:
+      AGENT_TYPE: order
+      TASK_QUEUE: order_tasks
+      DLQ_NAME: order_tasks_dlq
+      PORT: "8002"
+    ports:
+      - "8002:8002"
+
+  worker-inventory:
+    <<: *worker-common
+    container_name: xeni-worker-inventory
+    environment:
+      AGENT_TYPE: inventory
+      TASK_QUEUE: inventory_tasks
+      DLQ_NAME: inventory_tasks_dlq
+      PORT: "8003"
+    ports:
+      - "8003:8003"
+
+  worker-creative:
+    <<: *worker-common
+    container_name: xeni-worker-creative
+    environment:
+      AGENT_TYPE: creative
+      TASK_QUEUE: creative_tasks
+      DLQ_NAME: creative_tasks_dlq
+      PORT: "8004"
+    ports:
+      - "8004:8004"
+
+  worker-intelligence:
+    <<: *worker-common
+    container_name: xeni-worker-intelligence
+    environment:
+      AGENT_TYPE: intelligence
+      TASK_QUEUE: intelligence_tasks
+      DLQ_NAME: intelligence_tasks_dlq
+      PORT: "8005"
+    ports:
+      - "8005:8005"
+
+  worker-comment:
+    <<: *worker-common
+    container_name: xeni-worker-comment
+    environment:
+      AGENT_TYPE: comment
+      TASK_QUEUE: comment_tasks
+      DLQ_NAME: comment_tasks_dlq
+      PORT: "8006"
+    ports:
+      - "8006:8006"
+
+# ──────────────────────────────────────────────────────────
+# VOLUMES
+# ──────────────────────────────────────────────────────────
+
+volumes:
+  postgres_data:
+    driver: local
+  mongodb_data:
+    driver: local
+  redis_data:
+    driver: local
+  rabbitmq_data:
+    driver: local
+
+# ──────────────────────────────────────────────────────────
+# NETWORKS
+# ──────────────────────────────────────────────────────────
+
+networks:
+  xeni_net:
+    driver: bridge
+    name: xeni_net
