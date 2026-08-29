@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Xeni"
+version = "1.0.0"
+id = "artifacts/xeni"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 21180
+
+[services.development]
+run = "pnpm --filter @workspace/xeni run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/xeni", "run", "build" ]
+publicDir = "artifacts/xeni/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "21180"
+BASE_PATH = "/"

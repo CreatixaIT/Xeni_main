@@ -1,0 +1,15 @@
+packages:
+  "framer-motion": "For premium smooth scroll animations, modal scaling, and custom cursor physics"
+  "lucide-react": "For crisp vector icons used in UI controls and cards"
+  "clsx": "Utility for constructing className strings conditionally"
+  "tailwind-merge": "Utility to safely merge Tailwind CSS classes"
+
+images:
+  - path: "artifacts/xeni/public/images/abstract-mesh.png"
+    description: "Dark, moody abstract gradient mesh with very subtle neon blue and deep purple volumetric lighting, noir futuristic luxury style, pitch black background, clean and minimal"
+    aspect_ratio: "16:9"
+
+notes:
+  - "This is a single-page frontend marketing site."
+  - "Uses framer-motion for IntersectionObserver-based scroll reveals and complex interaction states."
+  - "Uses a custom canvas implementation for the particle background effect."

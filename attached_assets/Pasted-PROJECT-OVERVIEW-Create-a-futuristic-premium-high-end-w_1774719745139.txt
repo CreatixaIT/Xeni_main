@@ -1,0 +1,180 @@
+PROJECT OVERVIEW
+
+Create a futuristic, premium, high-end website for a digital services ecosystem called Xeni.
+
+The website must feel like:
+
+A luxury tech brand
+A next-generation AI company
+A minimal but powerful digital experience
+
+Inspired by immersive sites like:
+
+https://lusion.co/about
+
+Focus on:
+
+Smooth animations
+Premium typography
+Clean layout with strong visual hierarchy
+“Quiet luxury” aesthetic (not flashy, but deeply refined)
+🌌 HERO SECTION (IMMERSIVE EXPERIENCE)
+Layout:
+Full-screen (100vh)
+Center-aligned content
+Background: animated AI-style grid / flowing particles / soft motion gradients
+Visual Effects:
+Glassmorphism overlay layers
+Subtle glowing gradients (neon blue + purple, but toned down for luxury)
+Floating particles or wave distortion effect
+Smooth fade-in + upward motion on load
+Content:
+
+Headline (large serif font):
+
+Designing the Future of Digital Intelligence
+
+Subheadline (light sans-serif):
+
+A unified ecosystem of intelligent tools and services built for speed, automation, and growth.
+
+CTA:
+Button: Explore Services
+Smooth scroll to services section
+Hover: soft glow + slight scale (1.05x)
+🧠 SERVICES SECTION (INTERACTIVE GRID)
+Layout:
+4-card grid (2x2 desktop, stacked mobile)
+Centered with large spacing (luxury feel)
+Card Design:
+Glassmorphism (blur + transparency)
+Soft border glow (very subtle)
+Hover animation:
+Glow intensifies
+Card lifts slightly (translateY -8px)
+Background shimmer effect
+Services Content:
+1. Xeni Assistance
+
+Short:
+
+Your intelligent digital assistant for seamless operations and support.
+
+2. XeniFi
+
+Short:
+
+Smart financial solutions designed for speed, control, and scalability.
+
+3. XeniQ
+
+Short:
+
+Advanced intelligence layer for data-driven decisions and automation.
+
+4. Xenitor
+
+Short:
+
+Next-gen system optimization and digital infrastructure management.
+
+🧩 INTERACTION (IMPORTANT)
+
+When user clicks a card:
+
+Open a modal popup (centered, blurred background)
+Animate with smooth scale + fade
+
+Each popup should include:
+
+Title
+Expanded description
+Subtle divider line (glowing)
+Close button (top-right, minimal)
+⚡ MID SECTION (STATEMENT BLOCK)
+
+Minimal, centered section with large spacing:
+
+“We don’t just build digital tools. We architect intelligent ecosystems.”
+
+Effects:
+Text reveal animation (slide up + fade)
+Thin animated glowing divider line below text
+🎨 DESIGN SYSTEM (VERY IMPORTANT)
+Color Strategy (Quiet Luxury)
+
+Use Modern Noir palette:
+
+Background: #0A0A0A
+Secondary: #1F1F1F
+Accent:
+Soft Neon Blue (#00F5FF but reduced opacity)
+Muted Purple glow
+Optional Champagne gold highlight for premium feel
+
+⚠️ Avoid overly bright neon — keep everything slightly muted.
+
+Typography System
+Headline Font (Serif – Luxury Feel):
+Playfair Display / Bodoni / Cormorant
+Body Font (Sans-serif – Clean):
+Inter / Montserrat (light weight)
+Typography Rules:
+H1 very large (4x body size minimum)
+Line height: 1.6–1.8
+Letter spacing:
+Increase for uppercase text (2px–4px)
+Strong hierarchy (editorial style)
+📩 CONTACT SECTION (MINIMAL LUXURY ENDING)
+
+Centered layout:
+
+Title:
+
+Get in Touch
+
+Subtext:
+
+Let’s build the future together.
+
+Email (main focus):
+
+contact@xeni.com
+
+Effects:
+Soft glowing text
+Pulsing animation (very slow, elegant)
+Hover: brighter glow
+🎬 ANIMATION & EXPERIENCE RULES
+Smooth scrolling (ease-in-out)
+Page transitions should feel fluid
+No abrupt motion
+Micro-interactions:
+Buttons: glow + scale
+Cards: lift + light shimmer
+Text: reveal on scroll (fade + upward motion)
+⚙️ TECHNICAL INSTRUCTIONS
+
+Ask the AI to:
+
+Use React + Tailwind CSS (or clean HTML/CSS/JS if simpler)
+Use Framer Motion for animations
+Use CSS backdrop-filter for glassmorphism
+Optimize for performance (no heavy lag animations)
+Fully responsive (mobile-first design)
+🔥 FINAL EXPERIENCE GOAL
+
+The final website should feel like:
+
+A $50K+ agency-built product
+Clean but emotionally impactful
+Minimal but deeply interactive
+Premium, futuristic, and intentional
+💡 OPTIONAL ENHANCEMENTS
+
+If supported, include:
+
+Cursor glow effect
+Subtle sound on hover (very light, futuristic)
+Scroll-based parallax movement
+Gradient noise texture overlay (for richness)
