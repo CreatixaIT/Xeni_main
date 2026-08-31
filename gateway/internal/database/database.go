@@ -104,6 +104,9 @@ func autoMigrate(db *gorm.DB) error {
 		// Rules Engine
 		&models.SystemSetting{},
 		&models.AgentRule{},
+		// Category system (Milestone 6.1)
+		&models.Category{},
+		&models.ProductCategory{},
 	}
 
 	// Workaround: GORM frequently tries to drop unique constraints when changing from unique constraint to uniqueIndex.
