@@ -24,6 +24,7 @@ import (
 	"github.com/xeni-ai/gateway/internal/orders"
 	"github.com/xeni-ai/gateway/internal/pages"
 	"github.com/xeni-ai/gateway/internal/products"
+	"github.com/xeni-ai/gateway/internal/public"
 	"github.com/xeni-ai/gateway/internal/rabbitmq"
 	"github.com/xeni-ai/gateway/internal/rules"
 	"github.com/xeni-ai/gateway/internal/shop"
@@ -48,6 +49,7 @@ func Setup(
 	rmqClient *rabbitmq.Client,
 	spacesClient *storage.SpacesClient,
 	notifSvc *notifications.Service,
+	publicHandler *public.Handler,
 ) {
 	// ── Global Middleware ──
 	app.Use(recover.New())
@@ -216,6 +218,25 @@ func Setup(
 
 	// User review submission (authenticated users)
 	api.Post("/content/reviews", middleware.AuthMiddleware(jwtManager, redis), contentHandler.SubmitReview)
+
+	// ── Public API Routes (no authentication required) ──
+	publicGroup := api.Group("/public/v1")
+	
+	// Apply rate limiting to public endpoints
+	publicRateLimit := middleware.RateLimitMiddleware(redis, 100, time.Minute, "public")
+	publicGroup.Use(publicRateLimit)
+
+	// Public product endpoints
+	publicGroup.Get("/products", publicHandler.ListProducts)
+	publicGroup.Get("/products/:identifier", publicHandler.GetProduct)
+
+	// Public store endpoints
+	publicGroup.Get("/stores", publicHandler.ListStores)
+	publicGroup.Get("/stores/:identifier", publicHandler.GetStore)
+
+	// Public category endpoints
+	publicGroup.Get("/categories", publicHandler.ListCategories)
+	publicGroup.Get("/categories/:slug", publicHandler.GetCategory)
 
 	// ── Admin Routes ──
 	adminSvc := admin.NewService(db, redis, wsHub)

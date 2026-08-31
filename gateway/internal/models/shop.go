@@ -102,12 +102,16 @@ type Product struct {
 	HasVariants       bool      `gorm:"default:false;not null" json:"has_variants"`
 	TotalSold         int       `gorm:"default:0;not null" json:"total_sold"`
 	Images            JSON      `gorm:"type:jsonb;default:'[]'" json:"images"`
+	CategoryID        *uuid.UUID `gorm:"type:uuid" json:"category_id,omitempty"`
 	CreatedAt         time.Time `gorm:"autoCreateTime" json:"created_at"`
 	UpdatedAt         time.Time `gorm:"autoUpdateTime" json:"updated_at"`
 
 	Shop          Shop             `gorm:"foreignKey:ShopID;constraint:OnDelete:CASCADE" json:"-"`
 	Variants      []ProductVariant `gorm:"foreignKey:ProductID" json:"variants,omitempty"`
 	InventoryLogs []InventoryLog   `gorm:"foreignKey:ProductID" json:"inventory_logs,omitempty"`
+	Category      *Category        `gorm:"foreignKey:CategoryID" json:"category,omitempty"`
+	Categories    []Category       `gorm:"many2many:product_categories" json:"categories,omitempty"`
+	ProductCategories []ProductCategory `gorm:"foreignKey:ProductID" json:"product_categories,omitempty"`
 }
 
 func (p *Product) BeforeCreate(tx *gorm.DB) error {
