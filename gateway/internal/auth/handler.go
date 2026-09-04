@@ -2,9 +2,13 @@ package auth
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"math/big"
+	"net/mail"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -83,6 +87,41 @@ func (h *Handler) Register(c *fiber.Ctx) error {
 		return response.BadRequest(c, "Invalid request body")
 	}
 
+	// Server-side validation
+	if req.Email == "" {
+		return response.BadRequest(c, "Email is required")
+	}
+
+	// Validate email format
+	_, err := mail.ParseAddress(req.Email)
+	if err != nil {
+		return response.BadRequest(c, "Invalid email format")
+	}
+
+	// Normalize email: trim whitespace and convert to lowercase
+	req.Email = strings.TrimSpace(strings.ToLower(req.Email))
+
+	if req.Password == "" {
+		return response.BadRequest(c, "Password is required")
+	}
+	if req.FullName == "" {
+		return response.BadRequest(c, "Full name is required")
+	}
+	if len(req.Password) < 8 {
+		return response.BadRequest(c, "Password must be at least 8 characters")
+	}
+	if len(req.Password) > 128 {
+		return response.BadRequest(c, "Password is too long (maximum 128 characters)")
+	}
+
+	// Validate full name length
+	if len(req.FullName) < 2 {
+		return response.BadRequest(c, "Full name must be at least 2 characters")
+	}
+	if len(req.FullName) > 255 {
+		return response.BadRequest(c, "Full name is too long (maximum 255 characters)")
+	}
+
 	// Check if email exists
 	var existing models.User
 	if err := h.DB.Where("email = ?", req.Email).First(&existing).Error; err == nil {
@@ -128,7 +167,6 @@ func (h *Handler) Register(c *fiber.Ctx) error {
 
 	// Send verification email via Resend API
 	go h.Email.SendOTPVerification(user.Email, otp)
-	slog.Info("OTP generated for email verification", "user_id", user.ID.String(), "email", user.Email)
 
 	// Create starter subscription by default
 	var starterPlan models.Plan
@@ -635,7 +673,19 @@ func (h *Handler) FacebookCallback(c *fiber.Ctx) error {
 // ── Helpers ──
 
 func generateOTP() string {
-	return fmt.Sprintf("%06d", time.Now().UnixNano()%1000000)
+	// Generate cryptographically secure 6-digit OTP
+	max := new(big.Int)
+	max.SetInt64(1000000) // 6 digits (000000-999999)
+
+	n, err := rand.Int(rand.Reader, max)
+	if err != nil {
+		// Fallback to time-based if crypto fails (should not happen)
+		slog.Error("crypto/rand failed, falling back to time-based OTP", "error", err)
+		return fmt.Sprintf("%06d", time.Now().UnixNano()%1000000)
+	}
+
+	// Pad with leading zeros to ensure 6 digits
+	return fmt.Sprintf("%06d", n.Int64())
 }
 
 // SubscriptionInfo is cached subscription data.
@@ -667,7 +717,7 @@ func GetUserSubscription(db *gorm.DB, redisClient *cache.Client, userID string) 
 			info := &SubscriptionInfo{
 				PlanTier:       "super_admin",
 				Agents:         []string{"conversation", "order", "inventory", "creative", "intelligence"},
-				MaxTasksPerDay: 0, // unlimited
+				MaxTasksPerDay: 0,      // unlimited
 				StorageMB:      102400, // 100GB
 			}
 			data, _ := json.Marshal(info)
