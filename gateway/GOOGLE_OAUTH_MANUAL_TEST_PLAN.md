@@ -147,33 +147,56 @@ GOOGLE_REDIRECT_URL=https://your-domain.com/api/auth/google/callback
 
 **Steps:**
 1. Complete Google authentication
-2. Extract access_token from URL fragment
-3. Validate JWT structure and claims
-4. Verify token expiration
-5. Test token with protected Xeni endpoint
+2. Extract handoff code from URL fragment
+3. Call `POST /api/auth/exchange-handoff` with handoff code
+4. Extract access_token from response
+5. Validate JWT structure and claims
+6. Verify token expiration
+7. Test token with protected Xeni endpoint
 
 **Expected Result:**
+- Handoff code can be exchanged for Xeni JWT tokens
 - Token follows Xeni JWT format
 - Contains correct user_id, email, role claims
 - Token expires according to Xeni configuration
 - Token works with existing Xeni middleware
+- Handoff code is one-time use (cannot be reused)
 
 ### Test 10: Refresh Token Flow
 **Purpose:** Verify refresh token rotation works after Google auth
 
 **Steps:**
 1. Complete Google authentication
-2. Extract refresh_token from URL fragment
-3. Use refresh token to get new access token via `POST /api/auth/refresh`
-4. Verify new access token is issued
-5. Verify previous refresh token is revoked
+2. Exchange handoff code for tokens
+3. Extract refresh_token from response
+4. Use refresh token to get new access token via `POST /api/auth/refresh`
+5. Verify new access token is issued
+6. Verify previous refresh token is revoked
 
 **Expected Result:**
 - Refresh token rotation works identically to password auth
 - New access token issued
 - Previous refresh token invalidated
 
-### Test 11: Unverified Google Email
+### Test 11: Handoff Code Security
+**Purpose:** Verify secure handoff code mechanism
+
+**Steps:**
+1. Complete Google authentication
+2. Verify redirect URL contains only handoff code (not tokens)
+3. Verify URL fragment format: `#/auth/callback?code=...`
+4. Attempt to reuse same handoff code
+5. Verify second exchange fails
+
+**Expected Result:**
+- Redirect URL contains only handoff code
+- No access tokens in URL
+- No refresh tokens in URL
+- Handoff code can be exchanged for tokens
+- Handoff code cannot be reused (one-time use)
+- Handoff code expires in 5 minutes
+
+### Test 12: Unverified Google Email
 **Purpose:** Test handling of unverified Google emails (if applicable)
 
 **Steps:**
@@ -185,7 +208,7 @@ GOOGLE_REDIRECT_URL=https://your-domain.com/api/auth/google/callback
 - Error message: "Email must be verified by Google"
 - No user creation occurs
 
-### Test 12: Google OAuth Not Configured
+### Test 13: Google OAuth Not Configured
 **Purpose:** Test graceful degradation when Google OAuth is not configured
 
 **Steps:**
@@ -209,6 +232,11 @@ GOOGLE_REDIRECT_URL=https://your-domain.com/api/auth/google/callback
 - [ ] Email conflict is detected safely
 - [ ] Account takeover is prevented
 - [ ] CSRF protection is effective
+- [ ] Xeni tokens are NOT placed in URL fragment
+- [ ] Handoff code is used instead of direct token transfer
+- [ ] Handoff code is one-time use
+- [ ] Handoff code expires in 5 minutes
+- [ ] Handoff code cannot be reused
 - [ ] JWT tokens follow Xeni standard format
 - [ ] Refresh token rotation works correctly
 - [ ] No secret credentials in logs

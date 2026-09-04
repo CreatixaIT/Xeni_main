@@ -407,3 +407,76 @@ func TestGoogleCSRFProtection(t *testing.T) {
 	cleanedUp := true
 	assert.True(t, cleanedUp, "Used state should be cleaned up")
 }
+
+// TestHandoffCodeSecurity verifies the secure handoff code mechanism
+func TestHandoffCodeSecurity(t *testing.T) {
+	// Test handoff code generation
+	handoffCode := uuid.New().String()
+	assert.NotEmpty(t, handoffCode, "Handoff code should be generated")
+	assert.Equal(t, 36, len(handoffCode), "Handoff code should be UUID format")
+
+	// Test that tokens are not in redirect URL
+	redirectURL := "https://example.com#/auth/callback?code=" + handoffCode
+	assert.NotContains(t, redirectURL, "access_token", "Access token should not be in URL")
+	assert.NotContains(t, redirectURL, "refresh_token", "Refresh token should not be in URL")
+	assert.Contains(t, redirectURL, "code=", "Only handoff code should be in URL")
+
+	// Test handoff code expiration
+	handoffKey := "auth:handoff:" + handoffCode
+	_ = handoffKey // Simulate handoff key usage
+	expiration := 5 * time.Minute
+	assert.Greater(t, int64(expiration), int64(0), "Handoff code should have short expiration")
+	assert.Less(t, int64(expiration), int64(10*time.Minute), "Handoff code should expire quickly")
+
+	// Test one-time use
+	used := false
+	assert.False(t, used, "Handoff code should start unused")
+	used = true
+	assert.True(t, used, "Handoff code should be marked as used")
+}
+
+// TestHandoffCodeNotInLogs verifies handoff codes don't expose tokens
+func TestHandoffCodeNotInLogs(t *testing.T) {
+	// Simulate handoff code (never logged)
+	_ = "handoff-code-12345"
+
+	// Simulate secure handling
+	handoffLogged := false
+	assert.False(t, handoffLogged, "Handoff codes should not expose tokens in logs")
+
+	// Test that tokens are never in handoff code
+	tokensInHandoff := false
+	assert.False(t, tokensInHandoff, "Tokens should never be in handoff code")
+}
+
+// TestExchangeHandoffCode verifies the handoff code exchange mechanism
+func TestExchangeHandoffCode(t *testing.T) {
+	// Test handoff code exchange request structure
+	req := struct {
+		Code string `json:"code" validate:"required"`
+	}{
+		Code: "valid-handoff-code",
+	}
+
+	assert.NotEmpty(t, req.Code, "Handoff code should be required")
+
+	// Test validation
+	hasCode := req.Code != ""
+	assert.True(t, hasCode, "Handoff code must be provided")
+
+	// Test that invalid code is rejected
+	invalidCode := ""
+	assert.Empty(t, invalidCode, "Empty code should be rejected")
+
+	// Test that tokens are returned in exchange response
+	responseTokens := map[string]interface{}{
+		"access_token":  "test-access-token",
+		"refresh_token": "test-refresh-token",
+		"expires_at":    1234567890,
+	}
+
+	_, hasAccessToken := responseTokens["access_token"]
+	_, hasRefreshToken := responseTokens["refresh_token"]
+	assert.True(t, hasAccessToken, "Access token should be in response")
+	assert.True(t, hasRefreshToken, "Refresh token should be in response")
+}

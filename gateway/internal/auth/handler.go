@@ -670,10 +670,71 @@ func (h *Handler) GoogleCallback(c *fiber.Ctx) error {
 
 	slog.Info("Google authentication successful", "user_id", user.ID.String(), "email", user.Email)
 
-	// Redirect to frontend with tokens in URL fragment
-	redirectURL := fmt.Sprintf("%s#/auth/callback?access_token=%s&refresh_token=%s",
-		h.FrontendURL, tokenPair.AccessToken, tokenPair.RefreshToken)
+	// Generate secure one-time handoff code
+	handoffCode := uuid.New().String()
+	handoffKey := "auth:handoff:" + handoffCode
+
+	// Store tokens in Redis with short expiration (5 minutes)
+	handoffData := map[string]interface{}{
+		"access_token":  tokenPair.AccessToken,
+		"refresh_token": tokenPair.RefreshToken,
+		"expires_at":    tokenPair.ExpiresAt,
+		"user_id":       user.ID.String(),
+		"email":         user.Email,
+	}
+	handoffJSON, _ := json.Marshal(handoffData)
+
+	ctx2, cancel2 := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel2()
+	h.Redis.SetJSON(ctx2, handoffKey, handoffJSON, 5*time.Minute)
+
+	// Redirect to frontend with only the handoff code (not tokens)
+	redirectURL := fmt.Sprintf("%s#/auth/callback?code=%s", h.FrontendURL, handoffCode)
 	return c.Redirect(redirectURL)
+}
+
+// ExchangeHandoffCode exchanges a one-time handoff code for JWT tokens
+func (h *Handler) ExchangeHandoffCode(c *fiber.Ctx) error {
+	var req struct {
+		Code string `json:"code" validate:"required"`
+	}
+	if err := c.BodyParser(&req); err != nil {
+		return response.BadRequest(c, "Invalid request body")
+	}
+
+	// Retrieve handoff data from Redis
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	handoffKey := "auth:handoff:" + req.Code
+	handoffData, err := h.Redis.GetJSON(ctx, handoffKey)
+	if err != nil || handoffData == nil {
+		return response.BadRequest(c, "Invalid or expired handoff code")
+	}
+
+	// Delete the handoff code (one-time use)
+	h.Redis.Delete(ctx, handoffKey)
+
+	// Parse the stored data
+	var data struct {
+		AccessToken  string `json:"access_token"`
+		RefreshToken string `json:"refresh_token"`
+		ExpiresAt    int64  `json:"expires_at"`
+		UserID       string `json:"user_id"`
+		Email        string `json:"email"`
+	}
+	if err := json.Unmarshal(handoffData, &data); err != nil {
+		return response.InternalError(c)
+	}
+
+	return response.Success(c, map[string]interface{}{
+		"access_token":  data.AccessToken,
+		"refresh_token": data.RefreshToken,
+		"expires_at":    data.ExpiresAt,
+		"user": map[string]interface{}{
+			"id":    data.UserID,
+			"email": data.Email,
+		},
+	})
 }
 
 // FacebookCallback handles Facebook OAuth callback.

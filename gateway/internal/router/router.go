@@ -118,6 +118,7 @@ func Setup(
 	authGroup.Post("/reset-password", authRateLimit, authHandler.ResetPassword)
 	authGroup.Get("/google/login", authRateLimit, authHandler.GoogleLogin)
 	authGroup.Get("/google/callback", authRateLimit, authHandler.GoogleCallback)
+	authGroup.Post("/exchange-handoff", authRateLimit, authHandler.ExchangeHandoffCode)
 	authGroup.Post("/facebook/callback", authRateLimit, authHandler.FacebookCallback)
 
 	// Auth routes that require authentication
