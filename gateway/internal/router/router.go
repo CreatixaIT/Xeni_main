@@ -62,7 +62,15 @@ func Setup(
 	app.Use(middleware.RequestIDMiddleware())
 	app.Use(middleware.SecurityHeadersMiddleware())
 	app.Use(cors.New(cors.Config{
-		AllowOrigins:     cfg.App.FrontendURL,
+		AllowOriginsFunc: func(origin string) bool {
+			// Check if the origin is in the allowed list
+			for _, allowedOrigin := range cfg.App.FrontendURLs {
+				if origin == allowedOrigin {
+					return true
+				}
+			}
+			return false
+		},
 		AllowMethods:     "GET,POST,PUT,DELETE,OPTIONS",
 		AllowHeaders:     "Origin,Content-Type,Accept,Authorization,X-Request-ID",
 		AllowCredentials: true,

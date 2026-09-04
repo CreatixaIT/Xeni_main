@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -35,9 +36,10 @@ type SpacesConfig struct {
 }
 
 type AppConfig struct {
-	Env         string
-	Port        string
-	FrontendURL string
+	Env          string
+	Port         string
+	FrontendURL  string
+	FrontendURLs []string // Multiple trusted frontend origins for CORS
 }
 
 type DBConfig struct {
@@ -122,11 +124,19 @@ func Load() (*Config, error) {
 
 	sslSandbox, _ := strconv.ParseBool(getEnv("SSLCOMMERZ_IS_SANDBOX", "true"))
 
+	// Parse multiple frontend URLs for CORS
+	frontendURLs := parseFrontendURLs(getEnv("FRONTEND_URLS", ""))
+	if len(frontendURLs) == 0 {
+		// Fallback to single FRONTEND_URL for backward compatibility
+		frontendURLs = []string{getEnv("FRONTEND_URL", "http://localhost:3000")}
+	}
+
 	return &Config{
 		App: AppConfig{
-			Env:         getEnv("APP_ENV", "development"),
-			Port:        getEnv("PORT", "8080"),
-			FrontendURL: getEnv("FRONTEND_URL", "http://localhost:3000"),
+			Env:          getEnv("APP_ENV", "development"),
+			Port:         getEnv("PORT", "8080"),
+			FrontendURL:  getEnv("FRONTEND_URL", "http://localhost:3000"),
+			FrontendURLs: frontendURLs,
 		},
 		DB: DBConfig{
 			URI: getEnv("POSTGRES_URI", "postgres://xeni:xeni_secret@localhost:5432/xeni_db?sslmode=disable"),
@@ -194,4 +204,23 @@ func getEnv(key, fallback string) string {
 		return val
 	}
 	return fallback
+}
+
+// parseFrontendURLs parses a comma-separated list of frontend URLs
+func parseFrontendURLs(urls string) []string {
+	if urls == "" {
+		return []string{}
+	}
+
+	parts := strings.Split(urls, ",")
+	result := make([]string, 0, len(parts))
+
+	for _, part := range parts {
+		trimmed := strings.TrimSpace(part)
+		if trimmed != "" {
+			result = append(result, trimmed)
+		}
+	}
+
+	return result
 }
