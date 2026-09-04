@@ -15,6 +15,7 @@ import (
 	"github.com/xeni-ai/gateway/internal/agents"
 	"github.com/xeni-ai/gateway/internal/auth"
 	"github.com/xeni-ai/gateway/internal/billing"
+	"github.com/xeni-ai/gateway/internal/buyer"
 	"github.com/xeni-ai/gateway/internal/cache"
 	"github.com/xeni-ai/gateway/internal/config"
 	"github.com/xeni-ai/gateway/internal/content"
@@ -190,6 +191,23 @@ func Setup(
 	ordersGroup.Put("/:id", ordersHandler.UpdateOrder)
 	ordersGroup.Put("/:id/confirm-payment", ordersHandler.ConfirmPayment)
 	ordersGroup.Put("/:id/reject-payment", ordersHandler.RejectPayment)
+
+	// ── Buyer Commerce Routes ──
+	buyerHandler := buyer.NewHandler(db)
+
+	// Buyer cart routes (supports both authenticated and guest users)
+	buyerCartGroup := api.Group("/buyer/cart", apiRateLimit)
+	buyerCartGroup.Get("", buyerHandler.GetOrCreateCart)
+	buyerCartGroup.Post("/items", buyerHandler.AddItem)
+	buyerCartGroup.Put("/items/:id", buyerHandler.UpdateItem)
+	buyerCartGroup.Delete("/items/:id", buyerHandler.RemoveItem)
+	buyerCartGroup.Post("/clear", buyerHandler.ClearCart)
+
+	// Buyer checkout and order routes (require authentication)
+	buyerProtected := api.Group("/buyer", middleware.AuthMiddleware(jwtManager, redis), apiRateLimit)
+	buyerProtected.Post("/checkout", buyerHandler.Checkout)
+	buyerProtected.Get("/orders", buyerHandler.GetBuyerOrders)
+	buyerProtected.Get("/orders/:id", buyerHandler.GetBuyerOrder)
 
 	// ── Conversation Routes ──
 	convHandler := conversations.NewHandler(db, notifSvc)

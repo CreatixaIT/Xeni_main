@@ -11,39 +11,39 @@ import (
 
 // Shop represents the shops table.
 type Shop struct {
-	ID                  uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4();primaryKey" json:"id"`
-	UserID              uuid.UUID `gorm:"type:uuid;uniqueIndex;not null" json:"user_id"`
-	ShopName            string    `gorm:"size:255;not null" json:"shop_name"`
-	ShopDescription     *string   `gorm:"type:text" json:"shop_description"`
-	ShopLogoURL         *string   `gorm:"type:text" json:"shop_logo_url"`
-	PreferredLanguage   string    `gorm:"size:5;default:'bn';not null" json:"preferred_language"`
-	CourierPreference   string    `gorm:"size:20;default:'pathao';not null" json:"courier_preference"`
-	BkashMerchantNumber *string   `gorm:"size:20" json:"bkash_merchant_number"`
-	NagadMerchantNumber *string   `gorm:"size:20" json:"nagad_merchant_number"`
-	WhatsAppNumber      *string   `gorm:"column:whatsapp_number;size:20" json:"whatsapp_number"`
-	OwnerMobile         *string   `gorm:"size:20" json:"owner_mobile"`
-	District            *string   `gorm:"size:100" json:"district"`
-	DeliveryChargeInside  float64 `gorm:"type:decimal(8,2);default:60;not null" json:"delivery_charge_inside"`
-	DeliveryChargeOutside float64 `gorm:"type:decimal(8,2);default:120;not null" json:"delivery_charge_outside"`
-	PaymentVerificationMode string `gorm:"size:10;default:'manual';not null" json:"payment_verification_mode"`
-	BkashAppKey         *string   `gorm:"size:255" json:"bkash_app_key"`
-	BkashAppSecret      *string   `gorm:"size:255" json:"-"`
-	BkashUsername       *string   `gorm:"size:100" json:"-"`
-	BkashPassword       *string   `gorm:"size:255" json:"-"`
-	NagadMerchantID     *string   `gorm:"size:255" json:"nagad_merchant_id"`
-	NagadMerchantKey    *string   `gorm:"size:255" json:"-"`
-	PathaoClientID      *string   `gorm:"size:255" json:"-"`
-	PathaoClientSecret  *string   `gorm:"size:255" json:"-"`
-	PathaoUsername      *string   `gorm:"size:100" json:"-"`
-	PathaoPassword      *string   `gorm:"size:255" json:"-"`
-	SteadfastAPIKey     *string   `gorm:"size:255" json:"-"`
-	SteadfastSecretKey  *string   `gorm:"size:255" json:"-"`
-	AutoReplyEnabled    bool      `gorm:"default:true;not null" json:"auto_reply_enabled"`
-	AutoOrderEnabled    bool      `gorm:"default:true;not null" json:"auto_order_enabled"`
-	Integrations        JSON      `gorm:"type:jsonb;default:'{}'" json:"integrations"`
-	CustomAgentRules    *string   `gorm:"type:text" json:"custom_agent_rules"`
-	CreatedAt           time.Time `gorm:"autoCreateTime" json:"created_at"`
-	UpdatedAt           time.Time `gorm:"autoUpdateTime" json:"updated_at"`
+	ID                      uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4();primaryKey" json:"id"`
+	UserID                  uuid.UUID `gorm:"type:uuid;uniqueIndex;not null" json:"user_id"`
+	ShopName                string    `gorm:"size:255;not null" json:"shop_name"`
+	ShopDescription         *string   `gorm:"type:text" json:"shop_description"`
+	ShopLogoURL             *string   `gorm:"type:text" json:"shop_logo_url"`
+	PreferredLanguage       string    `gorm:"size:5;default:'bn';not null" json:"preferred_language"`
+	CourierPreference       string    `gorm:"size:20;default:'pathao';not null" json:"courier_preference"`
+	BkashMerchantNumber     *string   `gorm:"size:20" json:"bkash_merchant_number"`
+	NagadMerchantNumber     *string   `gorm:"size:20" json:"nagad_merchant_number"`
+	WhatsAppNumber          *string   `gorm:"column:whatsapp_number;size:20" json:"whatsapp_number"`
+	OwnerMobile             *string   `gorm:"size:20" json:"owner_mobile"`
+	District                *string   `gorm:"size:100" json:"district"`
+	DeliveryChargeInside    float64   `gorm:"type:decimal(8,2);default:60;not null" json:"delivery_charge_inside"`
+	DeliveryChargeOutside   float64   `gorm:"type:decimal(8,2);default:120;not null" json:"delivery_charge_outside"`
+	PaymentVerificationMode string    `gorm:"size:10;default:'manual';not null" json:"payment_verification_mode"`
+	BkashAppKey             *string   `gorm:"size:255" json:"bkash_app_key"`
+	BkashAppSecret          *string   `gorm:"size:255" json:"-"`
+	BkashUsername           *string   `gorm:"size:100" json:"-"`
+	BkashPassword           *string   `gorm:"size:255" json:"-"`
+	NagadMerchantID         *string   `gorm:"size:255" json:"nagad_merchant_id"`
+	NagadMerchantKey        *string   `gorm:"size:255" json:"-"`
+	PathaoClientID          *string   `gorm:"size:255" json:"-"`
+	PathaoClientSecret      *string   `gorm:"size:255" json:"-"`
+	PathaoUsername          *string   `gorm:"size:100" json:"-"`
+	PathaoPassword          *string   `gorm:"size:255" json:"-"`
+	SteadfastAPIKey         *string   `gorm:"size:255" json:"-"`
+	SteadfastSecretKey      *string   `gorm:"size:255" json:"-"`
+	AutoReplyEnabled        bool      `gorm:"default:true;not null" json:"auto_reply_enabled"`
+	AutoOrderEnabled        bool      `gorm:"default:true;not null" json:"auto_order_enabled"`
+	Integrations            JSON      `gorm:"type:jsonb;default:'{}'" json:"integrations"`
+	CustomAgentRules        *string   `gorm:"type:text" json:"custom_agent_rules"`
+	CreatedAt               time.Time `gorm:"autoCreateTime" json:"created_at"`
+	UpdatedAt               time.Time `gorm:"autoUpdateTime" json:"updated_at"`
 
 	User           User            `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
 	ConnectedPages []ConnectedPage `gorm:"foreignKey:ShopID" json:"connected_pages,omitempty"`
@@ -86,31 +86,31 @@ func (cp *ConnectedPage) BeforeCreate(tx *gorm.DB) error {
 
 // Product represents the products table.
 type Product struct {
-	ID                uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4();primaryKey" json:"id"`
-	ShopID            uuid.UUID `gorm:"type:uuid;not null;index" json:"shop_id"`
-	Name              string    `gorm:"size:255;not null" json:"name"`
-	NameBN            *string   `gorm:"column:name_bn;size:255" json:"name_bn"`
-	Description       *string   `gorm:"type:text" json:"description"`
-	DescriptionBN     *string   `gorm:"column:description_bn;type:text" json:"description_bn"`
-	Price             float64   `gorm:"type:decimal(12,2);default:0;not null" json:"price"`
-	SKU               *string   `gorm:"size:100" json:"sku"`
-	InitialStock      int       `gorm:"default:0;not null" json:"initial_stock"`
-	CurrentStock      int       `gorm:"default:0;not null" json:"current_stock"`
-	LowStockThreshold int       `gorm:"default:5;not null" json:"low_stock_threshold"`
-	IsActive          bool      `gorm:"default:true;not null" json:"is_active"`
-	IsOutOfStock      bool      `gorm:"default:false;not null" json:"is_out_of_stock"`
-	HasVariants       bool      `gorm:"default:false;not null" json:"has_variants"`
-	TotalSold         int       `gorm:"default:0;not null" json:"total_sold"`
-	Images            JSON      `gorm:"type:jsonb;default:'[]'" json:"images"`
+	ID                uuid.UUID  `gorm:"type:uuid;default:uuid_generate_v4();primaryKey" json:"id"`
+	ShopID            uuid.UUID  `gorm:"type:uuid;not null;index" json:"shop_id"`
+	Name              string     `gorm:"size:255;not null" json:"name"`
+	NameBN            *string    `gorm:"column:name_bn;size:255" json:"name_bn"`
+	Description       *string    `gorm:"type:text" json:"description"`
+	DescriptionBN     *string    `gorm:"column:description_bn;type:text" json:"description_bn"`
+	Price             float64    `gorm:"type:decimal(12,2);default:0;not null" json:"price"`
+	SKU               *string    `gorm:"size:100" json:"sku"`
+	InitialStock      int        `gorm:"default:0;not null" json:"initial_stock"`
+	CurrentStock      int        `gorm:"default:0;not null" json:"current_stock"`
+	LowStockThreshold int        `gorm:"default:5;not null" json:"low_stock_threshold"`
+	IsActive          bool       `gorm:"default:true;not null" json:"is_active"`
+	IsOutOfStock      bool       `gorm:"default:false;not null" json:"is_out_of_stock"`
+	HasVariants       bool       `gorm:"default:false;not null" json:"has_variants"`
+	TotalSold         int        `gorm:"default:0;not null" json:"total_sold"`
+	Images            JSON       `gorm:"type:jsonb;default:'[]'" json:"images"`
 	CategoryID        *uuid.UUID `gorm:"type:uuid" json:"category_id,omitempty"`
-	CreatedAt         time.Time `gorm:"autoCreateTime" json:"created_at"`
-	UpdatedAt         time.Time `gorm:"autoUpdateTime" json:"updated_at"`
+	CreatedAt         time.Time  `gorm:"autoCreateTime" json:"created_at"`
+	UpdatedAt         time.Time  `gorm:"autoUpdateTime" json:"updated_at"`
 
-	Shop          Shop             `gorm:"foreignKey:ShopID;constraint:OnDelete:CASCADE" json:"-"`
-	Variants      []ProductVariant `gorm:"foreignKey:ProductID" json:"variants,omitempty"`
-	InventoryLogs []InventoryLog   `gorm:"foreignKey:ProductID" json:"inventory_logs,omitempty"`
-	Category      *Category        `gorm:"foreignKey:CategoryID" json:"category,omitempty"`
-	Categories    []Category       `gorm:"many2many:product_categories" json:"categories,omitempty"`
+	Shop              Shop              `gorm:"foreignKey:ShopID;constraint:OnDelete:CASCADE" json:"-"`
+	Variants          []ProductVariant  `gorm:"foreignKey:ProductID" json:"variants,omitempty"`
+	InventoryLogs     []InventoryLog    `gorm:"foreignKey:ProductID" json:"inventory_logs,omitempty"`
+	Category          *Category         `gorm:"foreignKey:CategoryID" json:"category,omitempty"`
+	Categories        []Category        `gorm:"many2many:product_categories" json:"categories,omitempty"`
 	ProductCategories []ProductCategory `gorm:"foreignKey:ProductID" json:"product_categories,omitempty"`
 }
 
@@ -161,6 +161,7 @@ const (
 type Order struct {
 	ID                     uuid.UUID           `gorm:"type:uuid;default:uuid_generate_v4();primaryKey" json:"id"`
 	ShopID                 uuid.UUID           `gorm:"type:uuid;not null;index" json:"shop_id"`
+	BuyerID                *uuid.UUID          `gorm:"type:uuid;index" json:"buyer_id"`
 	CustomerPSID           *string             `gorm:"column:customer_psid;size:255" json:"customer_psid"`
 	CustomerName           *string             `gorm:"size:255" json:"customer_name"`
 	CustomerPhone          *string             `gorm:"size:20" json:"customer_phone"`
@@ -184,7 +185,8 @@ type Order struct {
 	CreatedAt              time.Time           `gorm:"autoCreateTime" json:"created_at"`
 	UpdatedAt              time.Time           `gorm:"autoUpdateTime" json:"updated_at"`
 
-	Shop Shop `gorm:"foreignKey:ShopID;constraint:OnDelete:CASCADE" json:"-"`
+	Shop  Shop  `gorm:"foreignKey:ShopID;constraint:OnDelete:CASCADE" json:"-"`
+	Buyer *User `gorm:"foreignKey:BuyerID;constraint:OnDelete:SET NULL" json:"-"`
 }
 
 func (o *Order) BeforeCreate(tx *gorm.DB) error {
