@@ -61,6 +61,7 @@ type JWTConfig struct {
 type GoogleOAuthConfig struct {
 	ClientID     string
 	ClientSecret string
+	RedirectURL  string
 }
 
 type FacebookOAuthConfig struct {
@@ -144,6 +145,7 @@ func Load() (*Config, error) {
 		Google: GoogleOAuthConfig{
 			ClientID:     getEnv("GOOGLE_CLIENT_ID", ""),
 			ClientSecret: getEnv("GOOGLE_CLIENT_SECRET", ""),
+			RedirectURL:  getEnv("GOOGLE_REDIRECT_URL", ""),
 		},
 		Facebook: FacebookOAuthConfig{
 			AppID:     getEnv("FACEBOOK_APP_ID", ""),

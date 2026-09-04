@@ -15,6 +15,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/pquerna/otp/totp"
 	"golang.org/x/crypto/bcrypt"
+	"golang.org/x/oauth2"
 	"gorm.io/gorm"
 
 	"github.com/xeni-ai/gateway/internal/cache"
@@ -31,11 +32,12 @@ type Handler struct {
 	JWT         *jwtPkg.Manager
 	FrontendURL string
 	Email       email.Service
+	GoogleOAuth *oauth2.Config
 }
 
 // NewHandler creates a new auth handler.
-func NewHandler(db *gorm.DB, redis *cache.Client, jwt *jwtPkg.Manager, frontendURL string, emailSvc email.Service) *Handler {
-	return &Handler{DB: db, Redis: redis, JWT: jwt, FrontendURL: frontendURL, Email: emailSvc}
+func NewHandler(db *gorm.DB, redis *cache.Client, jwt *jwtPkg.Manager, frontendURL string, emailSvc email.Service, googleOAuth *oauth2.Config) *Handler {
+	return &Handler{DB: db, Redis: redis, JWT: jwt, FrontendURL: frontendURL, Email: emailSvc, GoogleOAuth: googleOAuth}
 }
 
 // ── Request DTOs ──
@@ -519,35 +521,116 @@ func (h *Handler) ResetPassword(c *fiber.Ctx) error {
 	return response.Success(c, map[string]string{"message": "Password reset successfully"})
 }
 
+// GoogleLogin initiates Google OAuth flow.
+func (h *Handler) GoogleLogin(c *fiber.Ctx) error {
+	if h.GoogleOAuth == nil {
+		return response.BadRequest(c, "Google OAuth is not configured")
+	}
+
+	// Generate random state for CSRF protection
+	state := uuid.New().String()
+
+	// Store state in Redis for CSRF validation
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
+	stateKey := "oauth:state:" + state
+	h.Redis.SetJSON(ctx, stateKey, []byte("pending"), 5*time.Minute)
+
+	// Redirect to Google OAuth
+	url := h.GoogleOAuth.AuthCodeURL(state, oauth2.AccessTypeOffline)
+	return c.Redirect(url)
+}
+
 // GoogleCallback handles Google OAuth callback.
 func (h *Handler) GoogleCallback(c *fiber.Ctx) error {
-	// In production, this would exchange the code for tokens and get user info.
-	// For now, we handle the user info extraction.
-	var req struct {
-		GoogleID string `json:"google_id" validate:"required"`
-		Email    string `json:"email" validate:"required,email"`
-		Name     string `json:"name" validate:"required"`
-		Avatar   string `json:"avatar"`
-	}
-	if err := c.BodyParser(&req); err != nil {
-		return response.BadRequest(c, "Invalid request body")
+	if h.GoogleOAuth == nil {
+		return response.BadRequest(c, "Google OAuth is not configured")
 	}
 
+	// Validate state parameter to prevent CSRF
+	state := c.Query("state")
+	if state == "" {
+		return response.BadRequest(c, "Missing state parameter")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	stateKey := "oauth:state:" + state
+	storedState, err := h.Redis.GetJSON(ctx, stateKey)
+	if err != nil || storedState == nil {
+		return response.BadRequest(c, "Invalid or expired state parameter")
+	}
+
+	// Clear the used state
+	h.Redis.Delete(ctx, stateKey)
+
+	// Exchange authorization code for tokens
+	code := c.Query("code")
+	if code == "" {
+		return response.BadRequest(c, "Missing authorization code")
+	}
+
+	token, err := h.GoogleOAuth.Exchange(ctx, code)
+	if err != nil {
+		slog.Error("Failed to exchange Google auth code", "error", err)
+		return response.BadRequest(c, "Failed to authenticate with Google")
+	}
+
+	// Get user info from Google
+	client := h.GoogleOAuth.Client(ctx, token)
+	resp, err := client.Get("https://www.googleapis.com/oauth2/v2/userinfo")
+	if err != nil {
+		slog.Error("Failed to get Google user info", "error", err)
+		return response.BadRequest(c, "Failed to retrieve user information")
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		slog.Error("Google user info request failed", "status", resp.StatusCode)
+		return response.BadRequest(c, "Failed to retrieve user information")
+	}
+
+	var googleUser struct {
+		ID            string `json:"id"`
+		Email         string `json:"email"`
+		VerifiedEmail bool   `json:"verified_email"`
+		Name          string `json:"name"`
+		Picture       string `json:"picture"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&googleUser); err != nil {
+		slog.Error("Failed to decode Google user info", "error", err)
+		return response.InternalError(c)
+	}
+
+	// Ensure email is verified by Google
+	if !googleUser.VerifiedEmail {
+		return response.BadRequest(c, "Email must be verified by Google")
+	}
+
+	// Find or create user
 	var user models.User
-	err := h.DB.Where("google_id = ? OR email = ?", req.GoogleID, req.Email).First(&user).Error
+	err = h.DB.Where("google_id = ?", googleUser.ID).First(&user).Error
 
 	if err == gorm.ErrRecordNotFound {
+		// Check if email already exists with different auth provider
+		var existingUser models.User
+		if err := h.DB.Where("email = ?", googleUser.Email).First(&existingUser).Error; err == nil {
+			// Email exists but not with Google - create safe linking opportunity
+			return response.BadRequest(c, "Email already registered. Please log in with your existing account and link Google in settings.")
+		}
+
 		// Create new user
 		user = models.User{
-			Email:           req.Email,
-			FullName:        req.Name,
+			Email:           googleUser.Email,
+			FullName:        googleUser.Name,
 			AuthProvider:    models.AuthGoogle,
-			GoogleID:        &req.GoogleID,
-			AvatarURL:       &req.Avatar,
+			GoogleID:        &googleUser.ID,
+			AvatarURL:       &googleUser.Picture,
 			Status:          models.StatusActive,
 			IsEmailVerified: true,
 		}
 		if err := h.DB.Create(&user).Error; err != nil {
+			slog.Error("Failed to create Google user", "error", err)
 			return response.InternalError(c)
 		}
 
@@ -565,6 +648,7 @@ func (h *Handler) GoogleCallback(c *fiber.Ctx) error {
 			h.DB.Create(&sub)
 		}
 	} else if err != nil {
+		slog.Error("Database error during Google auth", "error", err)
 		return response.InternalError(c)
 	}
 
@@ -584,17 +668,12 @@ func (h *Handler) GoogleCallback(c *fiber.Ctx) error {
 	}
 	h.DB.Create(&rt)
 
-	return response.Success(c, map[string]interface{}{
-		"access_token":  tokenPair.AccessToken,
-		"refresh_token": tokenPair.RefreshToken,
-		"expires_at":    tokenPair.ExpiresAt,
-		"user": map[string]interface{}{
-			"id":        user.ID,
-			"email":     user.Email,
-			"full_name": user.FullName,
-			"role":      user.Role,
-		},
-	})
+	slog.Info("Google authentication successful", "user_id", user.ID.String(), "email", user.Email)
+
+	// Redirect to frontend with tokens in URL fragment
+	redirectURL := fmt.Sprintf("%s#/auth/callback?access_token=%s&refresh_token=%s",
+		h.FrontendURL, tokenPair.AccessToken, tokenPair.RefreshToken)
+	return c.Redirect(redirectURL)
 }
 
 // FacebookCallback handles Facebook OAuth callback.

@@ -8,6 +8,8 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	fiberlogger "github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
 
 	"github.com/xeni-ai/gateway/internal/admin"
 	"github.com/xeni-ai/gateway/internal/agents"
@@ -79,18 +81,31 @@ func Setup(
 
 	// ── Messenger & WhatsApp Webhooks (no auth — called by Meta) ──
 	messengerHandler := messenger.NewHandler(db, cfg, rmqClient)
-	
+
 	// Messenger
 	api.Get("/webhooks/messenger", messengerHandler.WebhookVerify)
 	api.Post("/webhooks/messenger", messengerHandler.WebhookReceive)
-	
+
 	// WhatsApp (Uses same verification logic as Messenger)
 	api.Get("/webhooks/whatsapp", messengerHandler.WebhookVerify)
 	api.Post("/webhooks/whatsapp", messengerHandler.WebhookReceive)
 
 	// ── Auth Routes ──
 	emailSvc := email.NewResendService(cfg.Email.ResendAPIKey, cfg.Email.FromEmail)
-	authHandler := auth.NewHandler(db, redis, jwtManager, cfg.App.FrontendURL, emailSvc)
+
+	// Configure Google OAuth if credentials are provided
+	var googleOAuth *oauth2.Config
+	if cfg.Google.ClientID != "" && cfg.Google.ClientSecret != "" && cfg.Google.RedirectURL != "" {
+		googleOAuth = &oauth2.Config{
+			ClientID:     cfg.Google.ClientID,
+			ClientSecret: cfg.Google.ClientSecret,
+			RedirectURL:  cfg.Google.RedirectURL,
+			Scopes:       []string{"openid", "email", "profile"},
+			Endpoint:     google.Endpoint,
+		}
+	}
+
+	authHandler := auth.NewHandler(db, redis, jwtManager, cfg.App.FrontendURL, emailSvc, googleOAuth)
 	authGroup := api.Group("/auth")
 	authRateLimit := middleware.RateLimitMiddleware(redis, 5, time.Minute, "auth")
 
@@ -101,7 +116,8 @@ func Setup(
 	authGroup.Post("/resend-otp", authRateLimit, authHandler.ResendOTP)
 	authGroup.Post("/forgot-password", authRateLimit, authHandler.ForgotPassword)
 	authGroup.Post("/reset-password", authRateLimit, authHandler.ResetPassword)
-	authGroup.Post("/google/callback", authRateLimit, authHandler.GoogleCallback)
+	authGroup.Get("/google/login", authRateLimit, authHandler.GoogleLogin)
+	authGroup.Get("/google/callback", authRateLimit, authHandler.GoogleCallback)
 	authGroup.Post("/facebook/callback", authRateLimit, authHandler.FacebookCallback)
 
 	// Auth routes that require authentication
@@ -132,7 +148,7 @@ func Setup(
 	shopGroup.Put("/me", shopHandler.UpdateMyShop)
 	shopGroup.Get("/integrations", shopHandler.GetIntegrations)
 	shopGroup.Put("/integrations", shopHandler.UpdateIntegrations)
-	
+
 	// Shop Custom Rules
 	shopGroup.Get("/rules", rulesHandler.ListShopRules)
 	shopGroup.Post("/rules", rulesHandler.CreateShopRule)
@@ -221,7 +237,7 @@ func Setup(
 
 	// ── Public API Routes (no authentication required) ──
 	publicGroup := api.Group("/public/v1")
-	
+
 	// Apply rate limiting to public endpoints
 	publicRateLimit := middleware.RateLimitMiddleware(redis, 100, time.Minute, "public")
 	publicGroup.Use(publicRateLimit)
@@ -256,17 +272,17 @@ func Setup(
 	adminGroup.Put("/users/:id/plan", adminHandler.OverrideUserPlan)
 	adminGroup.Put("/users/:id/status", adminHandler.ChangeUserStatus)
 	adminGroup.Delete("/users/:id", middleware.RBACMiddleware(models.RoleSuperAdmin), adminHandler.DeleteUser)
-	
+
 	adminGroup.Get("/users/:id/tasks", adminHandler.GetUserTasks)
 	adminGroup.Get("/users/:id/conversations", adminHandler.GetUserConversations)
 	adminGroup.Get("/tasks", adminHandler.ListAllTasks)
 	adminGroup.Get("/tasks/stats", adminHandler.GetTaskStats)
 	adminGroup.Post("/tasks/:id/retry", adminHandler.RetryTask)
-	
+
 	adminGroup.Get("/transactions", adminHandler.ListTransactions)
 	adminGroup.Get("/transactions/export", adminHandler.ExportTransactions)
 	adminGroup.Get("/transactions/:id", adminHandler.GetTransaction)
-	
+
 	adminGroup.Get("/plans/:id", adminHandler.GetPlan)
 	adminGroup.Put("/plans/:id", adminHandler.UpdatePlan)
 
@@ -289,7 +305,7 @@ func Setup(
 	adminContent.Put("/banner", contentHandler.UpdateBanner)
 	adminContent.Get("/faq", contentHandler.AdminGetFAQ)
 	adminContent.Put("/faq", contentHandler.UpdateFAQ)
-	
+
 	adminContent.Get("/reviews", contentHandler.AdminListReviews)
 	adminContent.Put("/reviews/reorder", contentHandler.ReorderReviews)
 	adminContent.Get("/reviews/settings", contentHandler.GetReviewSettings)
@@ -298,7 +314,6 @@ func Setup(
 	adminContent.Put("/reviews/:id/approve", contentHandler.ApproveReview)
 	adminContent.Put("/reviews/:id/reject", contentHandler.RejectReview)
 	adminContent.Delete("/reviews/:id", contentHandler.DeleteReview)
-
 
 	// ── Bootstrap Admin (only works if no super_admin exists) ──
 	api.Post("/admin/bootstrap", middleware.AuthMiddleware(jwtManager, redis), func(c *fiber.Ctx) error {
@@ -334,12 +349,12 @@ func Setup(
 		}
 
 		wsHub.Register(claims.UserID, conn)
-		
+
 		// If admin or super_admin, also add to admin room
 		if claims.Role == string(models.RoleAdmin) || claims.Role == string(models.RoleSuperAdmin) {
 			wsHub.RegisterAdmin(claims.UserID, conn)
 		}
-		
+
 		defer wsHub.Unregister(claims.UserID)
 
 		for {
