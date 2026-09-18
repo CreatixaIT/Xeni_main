@@ -1,6 +1,7 @@
 package database
 
 import (
+	"fmt"
 	"log/slog"
 
 	"github.com/xeni-ai/gateway/internal/config"
@@ -111,10 +112,42 @@ func autoMigrate(db *gorm.DB) error {
 
 	// Workaround: GORM frequently tries to drop unique constraints when changing from unique constraint to uniqueIndex.
 	// If the constraint doesn't exist, GORM crashes the migration for that model. So we tentatively create them first.
-	db.Exec(`ALTER TABLE "users" ADD CONSTRAINT "uni_users_email" UNIQUE ("email")`)
-	db.Exec(`ALTER TABLE "users" ADD CONSTRAINT "uni_users_google_id" UNIQUE ("google_id")`)
-	db.Exec(`ALTER TABLE "users" ADD CONSTRAINT "uni_users_facebook_id" UNIQUE ("facebook_id")`)
-	db.Exec(`ALTER TABLE "plans" ADD CONSTRAINT "uni_plans_tier" UNIQUE ("tier")`)
+	// Make this idempotent by checking if constraints already exist before creating them.
+
+	// Helper function to safely add unique constraint if it doesn't exist
+	safeAddUniqueConstraint := func(table, column, constraintName string) {
+		// Check if constraint already exists
+		var exists int
+		db.Raw(`
+			SELECT COUNT(*) 
+			FROM information_schema.table_constraints 
+			WHERE constraint_name = ? AND table_name = ?
+		`, constraintName, table).Scan(&exists)
+
+		if exists == 0 {
+			// Check if the column already has a unique constraint (maybe with different name)
+			var hasUnique int
+			db.Raw(`
+				SELECT COUNT(*) 
+				FROM information_schema.table_constraints tc
+				JOIN information_schema.key_column_usage kcu 
+					ON tc.constraint_name = kcu.constraint_name
+				WHERE tc.table_name = ? 
+					AND kcu.column_name = ? 
+					AND tc.constraint_type = 'UNIQUE'
+			`, table, column).Scan(&hasUnique)
+
+			if hasUnique == 0 {
+				// No unique constraint exists, create our own
+				db.Exec(fmt.Sprintf(`ALTER TABLE "%s" ADD CONSTRAINT "%s" UNIQUE ("%s")`, table, constraintName, column))
+			}
+		}
+	}
+
+	safeAddUniqueConstraint("users", "email", "uni_users_email")
+	safeAddUniqueConstraint("users", "google_id", "uni_users_google_id")
+	safeAddUniqueConstraint("users", "facebook_id", "uni_users_facebook_id")
+	safeAddUniqueConstraint("plans", "tier", "uni_plans_tier")
 
 	for _, m := range modelsToMigrate {
 		if err := db.AutoMigrate(m); err != nil {
@@ -136,6 +169,22 @@ func autoMigrate(db *gorm.DB) error {
 			slog.Warn("could not ensure column exists", "stmt", stmt, "error", err)
 		}
 	}
+
+	// Ensure carts.user_id is nullable for guest cart support
+	db.Exec(`
+		DO $$
+		BEGIN
+			IF EXISTS (
+				SELECT 1
+				FROM information_schema.columns
+				WHERE table_name = 'carts'
+				AND column_name = 'user_id'
+				AND is_nullable = 'NO'
+			) THEN
+				ALTER TABLE carts ALTER COLUMN user_id DROP NOT NULL;
+			END IF;
+		END $$
+	`)
 
 	return nil
 }
@@ -182,7 +231,7 @@ func Seed(db *gorm.DB) {
 				ContentEN:  models.JSON(`{}`),
 				ContentBN:  models.JSON(`{}`),
 			}
-			
+
 			switch key {
 			case "hero":
 				section.ContentEN = models.JSON(`{"headline":"Your Online Shop AI Employee","subheadline":"Automate conversations, orders, and content 24/7","cta_text":"Start Free","badge_text":"Now with AI Image Generation"}`)
@@ -246,7 +295,28 @@ func Seed(db *gorm.DB) {
 			})
 		}
 	}
-	
+
 	// Optional: Remove legacy global_agent_rules setting to clean up DB
 	db.Where("setting_key = ?", "global_agent_rules").Delete(&models.SystemSetting{})
+
+	// Seed default categories for E-Pic marketplace
+	slog.Info("synchronizing default categories...")
+	defaultCategories := []models.Category{
+		{Slug: "fashion", Name: "Fashion", NameBN: strPtr("ফ্যাশন"), IsActive: true, DisplayOrder: 1},
+		{Slug: "technology", Name: "Technology", NameBN: strPtr("প্রযুক্তি"), IsActive: true, DisplayOrder: 2},
+		{Slug: "home", Name: "Home", NameBN: strPtr("ঘর"), IsActive: true, DisplayOrder: 3},
+		{Slug: "beauty", Name: "Beauty", NameBN: strPtr("সৌন্দর্য"), IsActive: true, DisplayOrder: 4},
+		{Slug: "lifestyle", Name: "Lifestyle", NameBN: strPtr("জীবনধারা"), IsActive: true, DisplayOrder: 5},
+	}
+	for _, cat := range defaultCategories {
+		var existing models.Category
+		err := db.Where("slug = ?", cat.Slug).First(&existing).Error
+		if err == gorm.ErrRecordNotFound {
+			db.Create(&cat)
+		}
+	}
+}
+
+func strPtr(s string) *string {
+	return &s
 }

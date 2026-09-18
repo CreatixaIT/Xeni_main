@@ -13,10 +13,10 @@ import (
 )
 
 type CheckoutRequest struct {
-	CustomerName    string `json:"customer_name" validate:"required"`
-	CustomerPhone   string `json:"customer_phone" validate:"required"`
-	CustomerAddress string `json:"customer_address" validate:"required"`
-	PaymentMethod   string `json:"payment_method" validate:"required"`
+	CustomerName    string  `json:"customer_name" validate:"required"`
+	CustomerPhone   string  `json:"customer_phone" validate:"required"`
+	CustomerAddress string  `json:"customer_address" validate:"required"`
+	PaymentMethod   string  `json:"payment_method" validate:"required"`
 	SessionID       *string `json:"session_id,omitempty"`
 }
 
@@ -56,7 +56,7 @@ func (h *Handler) Checkout(c *fiber.Ctx) error {
 
 	if hasUser && userID != "" {
 		userUUID := uuid.MustParse(userID)
-		err = h.DB.Where("user_id = ? AND expires_at > ?", userUUID, time.Now()).
+		err = h.DB.Where("user_id = ? AND expires_at > ?", &userUUID, time.Now()).
 			Preload("CartItems.Product").
 			First(&cart).Error
 	} else if sessionID != "" {
@@ -79,7 +79,7 @@ func (h *Handler) Checkout(c *fiber.Ctx) error {
 
 	// Transaction: create orders with inventory locking
 	var createdOrders []models.Order
-	
+
 	// Group cart items by shop for multi-store support
 	shopGroups := make(map[uuid.UUID][]models.CartItem)
 	for _, cartItem := range cart.CartItems {
@@ -200,8 +200,8 @@ func (h *Handler) Checkout(c *fiber.Ctx) error {
 
 // GetBuyerOrders returns orders for the authenticated buyer
 func (h *Handler) GetBuyerOrders(c *fiber.Ctx) error {
-	userID := c.Locals("user_id").(string)
-	if userID == "" {
+	userID, hasUser := c.Locals("user_id").(string)
+	if !hasUser || userID == "" {
 		return response.Unauthorized(c, "Authentication required")
 	}
 
@@ -222,8 +222,8 @@ func (h *Handler) GetBuyerOrders(c *fiber.Ctx) error {
 
 // GetBuyerOrder returns a specific order for the authenticated buyer
 func (h *Handler) GetBuyerOrder(c *fiber.Ctx) error {
-	userID := c.Locals("user_id").(string)
-	if userID == "" {
+	userID, hasUser := c.Locals("user_id").(string)
+	if !hasUser || userID == "" {
 		return response.Unauthorized(c, "Authentication required")
 	}
 

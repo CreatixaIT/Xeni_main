@@ -1,0 +1,20 @@
+
+# Local environment files
+.env
+.env.*
+gateway/.env
+
+# Test fixtures
+*_fixtures.sql
+*_fixtures_cleanup.sql
+
+# macOS
+.DS_Store
+gateway/.DS_Store
+
+# IDE
+.vscode
+.idea
+
+# Test files (not ready for commit)
+gateway/internal/public/handler_test.go

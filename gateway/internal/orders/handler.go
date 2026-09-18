@@ -117,18 +117,100 @@ func (h *Handler) CreateOrder(c *fiber.Ctx) error {
 		CustomerName    *string `json:"customer_name"`
 		CustomerPhone   *string `json:"customer_phone"`
 		CustomerAddress *string `json:"customer_address"`
-		TotalAmount     float64 `json:"total_amount"`
+		TotalAmount     float64 `json:"total_amount"` // NOT used for validation, client display only
 		PaymentMethod   *string `json:"payment_method"`
 		Notes           *string `json:"notes"`
 		OrderItems      []struct {
 			ProductID string  `json:"product_id"`
 			VariantID *string `json:"variant_id"`
 			Quantity  int     `json:"quantity"`
-			Price     float64 `json:"price"`
+			Price     float64 `json:"price"` // NOT used for validation, client display only
 		} `json:"order_items"`
 	}
 	if err := c.BodyParser(&req); err != nil {
 		return response.BadRequest(c, "Invalid request body")
+	}
+
+	if len(req.OrderItems) == 0 {
+		return response.BadRequest(c, "Order must contain at least one item")
+	}
+
+	// Validate basic request structure before transaction
+	for _, item := range req.OrderItems {
+		if _, err := uuid.Parse(item.ProductID); err != nil {
+			return response.BadRequest(c, "Invalid product ID")
+		}
+		if item.Quantity <= 0 {
+			return response.BadRequest(c, "Quantity must be greater than 0")
+		}
+		if item.VariantID != nil && *item.VariantID != "" {
+			if _, err := uuid.Parse(*item.VariantID); err != nil {
+				return response.BadRequest(c, "Invalid variant ID")
+			}
+		}
+	}
+
+	tx := h.DB.Begin()
+
+	// Calculate authoritative total from database WITHIN transaction
+	authoritativeTotal := 0.0
+	orderItemsData := make([]map[string]interface{}, 0, len(req.OrderItems))
+
+	for _, item := range req.OrderItems {
+		pid, _ := uuid.Parse(item.ProductID)
+
+		if item.VariantID != nil && *item.VariantID != "" {
+			vid, _ := uuid.Parse(*item.VariantID)
+
+			// Load variant with product and shop validation within transaction
+			var variant models.ProductVariant
+			if err := tx.Joins("JOIN products ON product_variants.product_id = products.id").
+				Where("product_variants.id = ? AND product_variants.product_id = ? AND products.shop_id = ? AND products.is_active = ?", vid, pid, shop.ID, true).
+				First(&variant).Error; err != nil {
+				tx.Rollback()
+				return response.BadRequest(c, "Variant not found or belongs to different shop")
+			}
+
+			// Calculate with variant price modifier
+			var product models.Product
+			tx.First(&product, pid)
+			itemPrice := product.Price + variant.PriceModifier
+			itemTotal := float64(item.Quantity) * itemPrice
+			authoritativeTotal += itemTotal
+
+			orderItemsData = append(orderItemsData, map[string]interface{}{
+				"product_id": item.ProductID,
+				"variant_id": item.VariantID,
+				"quantity":   item.Quantity,
+				"price":      itemPrice, // Use authoritative price
+			})
+		} else {
+			// Load product with shop validation within transaction
+			var product models.Product
+			if err := tx.Where("id = ? AND shop_id = ? AND is_active = ?", pid, shop.ID, true).First(&product).Error; err != nil {
+				tx.Rollback()
+				return response.BadRequest(c, "Product not found, inactive, or belongs to different shop")
+			}
+
+			itemTotal := float64(item.Quantity) * product.Price
+			authoritativeTotal += itemTotal
+
+			orderItemsData = append(orderItemsData, map[string]interface{}{
+				"product_id": item.ProductID,
+				"quantity":   item.Quantity,
+				"price":      product.Price, // Use authoritative price
+			})
+		}
+	}
+
+	// Add delivery charge
+	authoritativeTotal += shop.DeliveryChargeInside
+
+	// Marshal order items JSON
+	orderItemsJSON, err := json.Marshal(orderItemsData)
+	if err != nil {
+		tx.Rollback()
+		return response.InternalError(c)
 	}
 
 	order := models.Order{
@@ -136,7 +218,8 @@ func (h *Handler) CreateOrder(c *fiber.Ctx) error {
 		CustomerName:    req.CustomerName,
 		CustomerPhone:   req.CustomerPhone,
 		CustomerAddress: req.CustomerAddress,
-		TotalAmount:     req.TotalAmount,
+		OrderItems:      models.JSON(orderItemsJSON),
+		TotalAmount:     authoritativeTotal, // Use authoritative total
 		PaymentStatus:   models.OrderPayPending,
 		DeliveryStatus:  models.DeliveryPending,
 		PlacedBy:        models.PlacedByHuman,
@@ -148,66 +231,99 @@ func (h *Handler) CreateOrder(c *fiber.Ctx) error {
 		order.PaymentMethod = &pm
 	}
 
-	if len(req.OrderItems) > 0 {
-		b, _ := json.Marshal(req.OrderItems)
-		order.OrderItems = b
-	}
-
-	tx := h.DB.Begin()
 	if err := tx.Create(&order).Error; err != nil {
 		tx.Rollback()
 		return response.InternalError(c)
 	}
 
-	// ── Decrement Stock ──
+	// ── Decrement Stock with Validation ──
 	for _, item := range req.OrderItems {
-		pid, _ := uuid.Parse(item.ProductID)
+		pid, err := uuid.Parse(item.ProductID)
+		if err != nil {
+			tx.Rollback()
+			return response.BadRequest(c, "Invalid product ID")
+		}
 
 		if item.VariantID != nil && *item.VariantID != "" {
-			vid, _ := uuid.Parse(*item.VariantID)
+			vid, err := uuid.Parse(*item.VariantID)
+			if err != nil {
+				tx.Rollback()
+				return response.BadRequest(c, "Invalid variant ID")
+			}
+
+			// Load variant for logging
 			var variant models.ProductVariant
-			if err := tx.Where("id = ? AND product_id = ?", vid, pid).First(&variant).Error; err == nil {
-				oldStock := variant.Stock
-				newStock := oldStock - item.Quantity
-				tx.Model(&variant).Update("stock", newStock)
-
-				// Update parent product total sold
-				tx.Model(&models.Product{}).Where("id = ?", pid).Update("total_sold", gorm.Expr("total_sold + ?", item.Quantity))
-
-				// Log move
-				oidStr := order.ID.String()
-				tx.Create(&models.InventoryLog{
-					ProductID:   pid,
-					VariantID:   &vid,
-					Type:        models.MovementSale,
-					Quantity:    -item.Quantity,
-					OldStock:    oldStock,
-					NewStock:    newStock,
-					ReferenceID: &oidStr,
-				})
+			if err := tx.First(&variant, vid).Error; err != nil {
+				tx.Rollback()
+				return response.BadRequest(c, "Variant not found")
 			}
+
+			// Validate stock with atomic update
+			result := tx.Model(&models.ProductVariant{}).
+				Where("id = ? AND stock >= ?", vid, item.Quantity).
+				Update("stock", gorm.Expr("stock - ?", item.Quantity))
+
+			if result.RowsAffected == 0 {
+				tx.Rollback()
+				return response.BadRequest(c, "Insufficient variant stock")
+			}
+
+			// Reload variant for logging
+			tx.First(&variant, vid)
+			oldStock := variant.Stock + item.Quantity
+			newStock := variant.Stock
+
+			// Update parent product total sold
+			tx.Model(&models.Product{}).Where("id = ?", pid).UpdateColumn("total_sold", gorm.Expr("total_sold + ?", item.Quantity))
+
+			// Log move
+			oidStr := order.ID.String()
+			tx.Create(&models.InventoryLog{
+				ProductID:   pid,
+				VariantID:   &vid,
+				Type:        models.MovementSale,
+				Quantity:    -item.Quantity,
+				OldStock:    oldStock,
+				NewStock:    newStock,
+				ReferenceID: &oidStr,
+			})
 		} else {
+			// Load product for logging
 			var product models.Product
-			if err := tx.Where("id = ?", pid).First(&product).Error; err == nil {
-				oldStock := product.CurrentStock
-				newStock := oldStock - item.Quantity
-				tx.Model(&product).Updates(map[string]interface{}{
-					"current_stock":   newStock,
-					"total_sold":     gorm.Expr("total_sold + ?", item.Quantity),
-					"is_out_of_stock": newStock <= 0,
+			if err := tx.First(&product, pid).Error; err != nil {
+				tx.Rollback()
+				return response.BadRequest(c, "Product not found")
+			}
+
+			// Validate stock with atomic update
+			result := tx.Model(&models.Product{}).
+				Where("id = ? AND current_stock >= ? AND is_out_of_stock = ?", pid, item.Quantity, false).
+				Updates(map[string]interface{}{
+					"current_stock":   gorm.Expr("current_stock - ?", item.Quantity),
+					"total_sold":      gorm.Expr("total_sold + ?", item.Quantity),
+					"is_out_of_stock": gorm.Expr("current_stock - ? <= 0", item.Quantity),
 				})
 
-				// Log move
-				oidStr := order.ID.String()
-				tx.Create(&models.InventoryLog{
-					ProductID:   pid,
-					Type:        models.MovementSale,
-					Quantity:    -item.Quantity,
-					OldStock:    oldStock,
-					NewStock:    newStock,
-					ReferenceID: &oidStr,
-				})
+			if result.RowsAffected == 0 {
+				tx.Rollback()
+				return response.BadRequest(c, "Insufficient product stock or product out of stock")
 			}
+
+			// Reload product for logging
+			tx.First(&product, pid)
+			oldStock := product.CurrentStock + item.Quantity
+			newStock := product.CurrentStock
+
+			// Log move
+			oidStr := order.ID.String()
+			tx.Create(&models.InventoryLog{
+				ProductID:   pid,
+				Type:        models.MovementSale,
+				Quantity:    -item.Quantity,
+				OldStock:    oldStock,
+				NewStock:    newStock,
+				ReferenceID: &oidStr,
+			})
 		}
 	}
 
@@ -376,9 +492,9 @@ func (h *Handler) ConfirmPayment(c *fiber.Ctx) error {
 	now := time.Now()
 	verifiedBy := "seller"
 	updates := map[string]interface{}{
-		"payment_status":  models.OrderPayVerified,
-		"verified_by":     verifiedBy,
-		"verified_at":     &now,
+		"payment_status": models.OrderPayVerified,
+		"verified_by":    verifiedBy,
+		"verified_at":    &now,
 	}
 	if req.AdminNote != nil {
 		updates["admin_note"] = *req.AdminNote

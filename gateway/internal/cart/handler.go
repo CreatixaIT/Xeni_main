@@ -34,15 +34,16 @@ type UpdateCartItemRequest struct {
 
 // GetOrCreateCart gets an existing cart or creates a new one
 func (h *Handler) GetOrCreateCart(c *fiber.Ctx) error {
-	userID := c.Locals("user_id").(string)
+	userID, hasUser := c.Locals("user_id").(string)
 	sessionID := c.Query("session_id")
 
 	var cart models.Cart
 	var err error
 
-	if userID != "" {
+	if hasUser && userID != "" {
 		// Authenticated user: get cart by user_id
-		err = h.DB.Where("user_id = ? AND expires_at > ?", userID, time.Now()).
+		userUUID := uuid.MustParse(userID)
+		err = h.DB.Where("user_id = ? AND expires_at > ?", &userUUID, time.Now()).
 			Preload("CartItems.Product").
 			First(&cart).Error
 	} else if sessionID != "" {
@@ -51,15 +52,25 @@ func (h *Handler) GetOrCreateCart(c *fiber.Ctx) error {
 			Preload("CartItems.Product").
 			First(&cart).Error
 	} else {
-		return response.Unauthorized(c, "Authentication required")
+		// No user or session - create guest cart with new session
+		newSessionID := uuid.New().String()
+		cart = models.Cart{
+			SessionID: &newSessionID,
+			ExpiresAt: time.Now().Add(24 * time.Hour),
+		}
+		if err := h.DB.Create(&cart).Error; err != nil {
+			return response.InternalError(c)
+		}
+		return response.Success(c, cart)
 	}
 
 	if err == gorm.ErrRecordNotFound {
 		// Create new cart
-		if userID != "" {
+		if hasUser && userID != "" {
+			userUUID := uuid.MustParse(userID)
 			cart = models.Cart{
-				UserID:    uuid.MustParse(userID),
-				ExpiresAt: time.Now().Add(24 * time.Hour), // 24 hour expiry
+				UserID:    &userUUID,
+				ExpiresAt: time.Now().Add(24 * time.Hour),
 			}
 		} else if sessionID != "" {
 			cart = models.Cart{
@@ -79,7 +90,7 @@ func (h *Handler) GetOrCreateCart(c *fiber.Ctx) error {
 
 // AddItem adds an item to the cart
 func (h *Handler) AddItem(c *fiber.Ctx) error {
-	userID := c.Locals("user_id").(string)
+	userID, hasUser := c.Locals("user_id").(string)
 	sessionID := c.Query("session_id")
 
 	var req AddCartItemRequest
@@ -92,18 +103,19 @@ func (h *Handler) AddItem(c *fiber.Ctx) error {
 		return response.BadRequest(c, "Invalid product ID")
 	}
 
-	// Verify product exists
+	// Verify product exists and is active
 	var product models.Product
-	if err := h.DB.First(&product, productID).Error; err != nil {
-		return response.BadRequest(c, "Product not found")
+	if err := h.DB.Where("id = ? AND is_active = ?", productID, true).First(&product).Error; err != nil {
+		return response.BadRequest(c, "Product not found or inactive")
 	}
 
 	// Get or create cart
 	var cart models.Cart
 	var errCart error
 
-	if userID != "" {
-		errCart = h.DB.Where("user_id = ? AND expires_at > ?", userID, time.Now()).
+	if hasUser && userID != "" {
+		userUUID := uuid.MustParse(userID)
+		errCart = h.DB.Where("user_id = ? AND expires_at > ?", &userUUID, time.Now()).
 			First(&cart).Error
 	} else if sessionID != "" {
 		errCart = h.DB.Where("session_id = ? AND expires_at > ?", sessionID, time.Now()).
@@ -113,9 +125,10 @@ func (h *Handler) AddItem(c *fiber.Ctx) error {
 	}
 
 	if errCart == gorm.ErrRecordNotFound {
-		if userID != "" {
+		if hasUser && userID != "" {
+			userUUID := uuid.MustParse(userID)
 			cart = models.Cart{
-				UserID:    uuid.MustParse(userID),
+				UserID:    &userUUID,
 				ExpiresAt: time.Now().Add(24 * time.Hour),
 			}
 		} else if sessionID != "" {
@@ -164,7 +177,7 @@ func (h *Handler) AddItem(c *fiber.Ctx) error {
 
 // UpdateItem updates the quantity of a cart item
 func (h *Handler) UpdateItem(c *fiber.Ctx) error {
-	userID := c.Locals("user_id").(string)
+	userID, hasUser := c.Locals("user_id").(string)
 	sessionID := c.Query("session_id")
 	cartItemID := c.Params("id")
 
@@ -182,8 +195,9 @@ func (h *Handler) UpdateItem(c *fiber.Ctx) error {
 	var cartItem models.CartItem
 	query := h.DB.Joins("JOIN carts ON cart_items.cart_id = carts.id")
 
-	if userID != "" {
-		query = query.Where("cart_items.id = ? AND carts.user_id = ?", cartItemUUID, userID)
+	if hasUser && userID != "" {
+		userUUID := uuid.MustParse(userID)
+		query = query.Where("cart_items.id = ? AND carts.user_id = ?", cartItemUUID, userUUID)
 	} else if sessionID != "" {
 		query = query.Where("cart_items.id = ? AND carts.session_id = ?", cartItemUUID, sessionID)
 	} else {
@@ -220,7 +234,7 @@ func (h *Handler) UpdateItem(c *fiber.Ctx) error {
 
 // RemoveItem removes an item from the cart
 func (h *Handler) RemoveItem(c *fiber.Ctx) error {
-	userID := c.Locals("user_id").(string)
+	userID, hasUser := c.Locals("user_id").(string)
 	sessionID := c.Query("session_id")
 	cartItemID := c.Params("id")
 
@@ -233,8 +247,9 @@ func (h *Handler) RemoveItem(c *fiber.Ctx) error {
 	var cartItem models.CartItem
 	query := h.DB.Joins("JOIN carts ON cart_items.cart_id = carts.id")
 
-	if userID != "" {
-		query = query.Where("cart_items.id = ? AND carts.user_id = ?", cartItemUUID, userID)
+	if hasUser && userID != "" {
+		userUUID := uuid.MustParse(userID)
+		query = query.Where("cart_items.id = ? AND carts.user_id = ?", cartItemUUID, userUUID)
 	} else if sessionID != "" {
 		query = query.Where("cart_items.id = ? AND carts.session_id = ?", cartItemUUID, sessionID)
 	} else {
@@ -263,14 +278,15 @@ func (h *Handler) RemoveItem(c *fiber.Ctx) error {
 
 // ClearCart removes all items from the cart
 func (h *Handler) ClearCart(c *fiber.Ctx) error {
-	userID := c.Locals("user_id").(string)
+	userID, hasUser := c.Locals("user_id").(string)
 	sessionID := c.Query("session_id")
 
 	var cart models.Cart
 	var err error
 
-	if userID != "" {
-		err = h.DB.Where("user_id = ? AND expires_at > ?", userID, time.Now()).
+	if hasUser && userID != "" {
+		userUUID := uuid.MustParse(userID)
+		err = h.DB.Where("user_id = ? AND expires_at > ?", &userUUID, time.Now()).
 			First(&cart).Error
 	} else if sessionID != "" {
 		err = h.DB.Where("session_id = ? AND expires_at > ?", sessionID, time.Now()).

@@ -44,7 +44,7 @@ func (h *Handler) GetOrCreateCart(c *fiber.Ctx) error {
 	if hasUser && userID != "" {
 		// Authenticated user: get cart by user_id
 		userUUID := uuid.MustParse(userID)
-		err = h.DB.Where("user_id = ? AND expires_at > ?", userUUID, time.Now()).
+		err = h.DB.Where("user_id = ? AND expires_at > ?", &userUUID, time.Now()).
 			Preload("CartItems.Product").
 			First(&cart).Error
 	} else if sessionID != "" {
@@ -70,7 +70,7 @@ func (h *Handler) GetOrCreateCart(c *fiber.Ctx) error {
 		if hasUser && userID != "" {
 			userUUID := uuid.MustParse(userID)
 			cart = models.Cart{
-				UserID:    userUUID,
+				UserID:    &userUUID,
 				ExpiresAt: time.Now().Add(24 * time.Hour),
 			}
 		} else if sessionID != "" {
@@ -122,7 +122,7 @@ func (h *Handler) AddItem(c *fiber.Ctx) error {
 
 	if hasUser && userID != "" {
 		userUUID := uuid.MustParse(userID)
-		errCart = h.DB.Where("user_id = ? AND expires_at > ?", userUUID, time.Now()).
+		errCart = h.DB.Where("user_id = ? AND expires_at > ?", &userUUID, time.Now()).
 			First(&cart).Error
 	} else if sessionID != "" {
 		errCart = h.DB.Where("session_id = ? AND expires_at > ?", sessionID, time.Now()).
@@ -135,7 +135,7 @@ func (h *Handler) AddItem(c *fiber.Ctx) error {
 		if hasUser && userID != "" {
 			userUUID := uuid.MustParse(userID)
 			cart = models.Cart{
-				UserID:    userUUID,
+				UserID:    &userUUID,
 				ExpiresAt: time.Now().Add(24 * time.Hour),
 			}
 		} else if sessionID != "" {
@@ -293,7 +293,7 @@ func (h *Handler) ClearCart(c *fiber.Ctx) error {
 
 	if hasUser && userID != "" {
 		userUUID := uuid.MustParse(userID)
-		err = h.DB.Where("user_id = ? AND expires_at > ?", userUUID, time.Now()).
+		err = h.DB.Where("user_id = ? AND expires_at > ?", &userUUID, time.Now()).
 			First(&cart).Error
 	} else if sessionID != "" {
 		err = h.DB.Where("session_id = ? AND expires_at > ?", sessionID, time.Now()).

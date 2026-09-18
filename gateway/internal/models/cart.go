@@ -9,12 +9,12 @@ import (
 
 // Cart represents the carts table.
 type Cart struct {
-	ID        uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4();primaryKey" json:"id"`
-	UserID    uuid.UUID `gorm:"type:uuid;not null;index" json:"user_id"`
-	SessionID *string   `gorm:"size:255;index" json:"session_id,omitempty"` // For guest carts
-	ExpiresAt time.Time `gorm:"not null;index" json:"expires_at"`
-	CreatedAt time.Time `gorm:"autoCreateTime" json:"created_at"`
-	UpdatedAt time.Time `gorm:"autoUpdateTime" json:"updated_at"`
+	ID        uuid.UUID  `gorm:"type:uuid;default:uuid_generate_v4();primaryKey" json:"id"`
+	UserID    *uuid.UUID `gorm:"type:uuid;index" json:"user_id,omitempty"`   // Nullable for guest carts
+	SessionID *string    `gorm:"size:255;index" json:"session_id,omitempty"` // For guest carts
+	ExpiresAt time.Time  `gorm:"not null;index" json:"expires_at"`
+	CreatedAt time.Time  `gorm:"autoCreateTime" json:"created_at"`
+	UpdatedAt time.Time  `gorm:"autoUpdateTime" json:"updated_at"`
 
 	User      User       `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
 	CartItems []CartItem `gorm:"foreignKey:CartID;constraint:OnDelete:CASCADE" json:"cart_items,omitempty"`
