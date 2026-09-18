@@ -2,7 +2,7 @@ package products
 
 import (
 	"encoding/json"
-	
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -76,6 +76,7 @@ func (h *Handler) CreateProduct(c *fiber.Ctx) error {
 		LowStockThreshold int      `json:"low_stock_threshold"`
 		HasVariants       bool     `json:"has_variants"`
 		Images            []string `json:"images"`
+		CategoryID        *string  `json:"category_id"`
 		Variants          []struct {
 			SKU           string  `json:"sku"`
 			Color         *string `json:"color"`
@@ -107,6 +108,15 @@ func (h *Handler) CreateProduct(c *fiber.Ctx) error {
 		LowStockThreshold: req.LowStockThreshold,
 		IsOutOfStock:      req.InitialStock == 0,
 		HasVariants:       req.HasVariants,
+	}
+
+	// Handle category assignment
+	if req.CategoryID != nil && *req.CategoryID != "" {
+		categoryUUID, err := uuid.Parse(*req.CategoryID)
+		if err != nil {
+			return response.BadRequest(c, "Invalid category ID")
+		}
+		product.CategoryID = &categoryUUID
 	}
 
 	// Calculate total stock if variants are present
@@ -141,7 +151,7 @@ func (h *Handler) CreateProduct(c *fiber.Ctx) error {
 				PriceModifier: v.PriceModifier,
 			}
 			h.DB.Create(&variant)
-			
+
 			// Log initial stock for variant
 			h.DB.Create(&models.InventoryLog{
 				ProductID: product.ID,
@@ -262,6 +272,7 @@ func (h *Handler) UpdateProduct(c *fiber.Ctx) error {
 		LowStockThreshold *int     `json:"low_stock_threshold"`
 		IsActive          *bool    `json:"is_active"`
 		HasVariants       *bool    `json:"has_variants"`
+		CategoryID        *string  `json:"category_id"`
 		Variants          []struct {
 			SKU           string  `json:"sku"`
 			Color         *string `json:"color"`
@@ -269,7 +280,7 @@ func (h *Handler) UpdateProduct(c *fiber.Ctx) error {
 			Stock         int     `json:"stock"`
 			PriceModifier float64 `json:"price_modifier"`
 		} `json:"variants"`
-		Images            []string `json:"images"`
+		Images []string `json:"images"`
 	}
 	if err := c.BodyParser(&req); err != nil {
 		return response.BadRequest(c, "Invalid request body")
@@ -309,6 +320,18 @@ func (h *Handler) UpdateProduct(c *fiber.Ctx) error {
 		updates["images"] = b
 	}
 
+	if req.CategoryID != nil {
+		if *req.CategoryID == "" {
+			updates["category_id"] = nil
+		} else {
+			categoryUUID, err := uuid.Parse(*req.CategoryID)
+			if err != nil {
+				return response.BadRequest(c, "Invalid category ID")
+			}
+			updates["category_id"] = categoryUUID
+		}
+	}
+
 	if req.HasVariants != nil {
 		updates["has_variants"] = *req.HasVariants
 	}
@@ -328,7 +351,7 @@ func (h *Handler) UpdateProduct(c *fiber.Ctx) error {
 			// For simplicity in this update, we clear and recreate variants
 			// and then recalculate the product's total stock
 			h.DB.Where("product_id = ?", product.ID).Delete(&models.ProductVariant{})
-			
+
 			totalStock := 0
 			for _, v := range req.Variants {
 				variant := models.ProductVariant{
