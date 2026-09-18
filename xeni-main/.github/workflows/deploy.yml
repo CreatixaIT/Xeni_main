@@ -84,10 +84,10 @@ jobs:
 
             echo "== Syncing Git =="
             if [ ! -d ".git" ]; then
-              git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/XenDevHub/xeni.git .
+              git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/CreatixaIT/Xeni_main.git .
             else
               git stash || true
-              git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/XenDevHub/xeni.git
+              git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/CreatixaIT/Xeni_main.git
               git pull origin main
             fi
             
@@ -99,7 +99,7 @@ jobs:
             printf '%s' "${{ secrets.ENV_PRODUCTION }}" > ./workers/.env
 
             echo "== Login to GHCR =="
-            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "xendevhub" --password-stdin
+            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "creatixait" --password-stdin
 
             echo "== Pulling latest images =="
             docker compose -f docker-compose.yml -f docker-compose.prod.yml pull

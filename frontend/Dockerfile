@@ -30,7 +30,7 @@ RUN echo "DEBUG BLASTER: Client ID is => ${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-MASKED_
 
 # Production
 FROM base AS production
-LABEL org.opencontainers.image.source=https://github.com/XenDevHub/xeni
+LABEL org.opencontainers.image.source=https://github.com/CreatixaIT/Xeni_main
 ENV NODE_ENV=production
 RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
 COPY --from=builder /app/public ./public

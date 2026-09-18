@@ -27,7 +27,7 @@ CMD ["go", "run", "./cmd/main.go"]
 
 # ── Production Stage ──
 FROM alpine:3.19 AS production
-LABEL org.opencontainers.image.source=https://github.com/XenDevHub/xeni
+LABEL org.opencontainers.image.source=https://github.com/CreatixaIT/Xeni_main
 RUN apk add --no-cache ca-certificates tzdata
 WORKDIR /app
 COPY --chown=nobody:nobody --from=builder /build/gateway .
