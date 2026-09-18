@@ -1,0 +1,118 @@
+name: CI and CD
+
+on:
+  push:
+    branches: ["main"]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build_push:
+    name: Build & Push Docker images (GHCR)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login to GHCR (built-in token)
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Build & push (Gateway & Frontend)
+        shell: bash
+        run: |
+          # Convert repository name to lowercase for GHCR spec
+          REPO="ghcr.io/${GITHUB_REPOSITORY,,}"
+          SHA="${GITHUB_SHA::7}"
+
+          echo "== Building Gateway =="
+          docker build --target production -t "$REPO/gateway:latest" -t "$REPO/gateway:$SHA" ./gateway
+          docker push "$REPO/gateway:latest"
+          docker push "$REPO/gateway:$SHA"
+
+          echo "== Building Frontend =="
+          echo "${{ secrets.ENV_PRODUCTION }}" | tr -d '\r' | grep '^NEXT_PUBLIC_' > ./frontend/.env.production
+          
+          cd frontend
+          export ARG_CLIENT_ID=$(grep '^NEXT_PUBLIC_GOOGLE_CLIENT_ID=' .env.production | cut -d'=' -f2 || echo "")
+          export ARG_API_URL=$(grep '^NEXT_PUBLIC_API_URL=' .env.production | cut -d'=' -f2 || echo "")
+          export ARG_WS_URL=$(grep '^NEXT_PUBLIC_WS_URL=' .env.production | cut -d'=' -f2 || echo "")
+          cd ..
+          
+          docker build --target production \
+            --build-arg NEXT_PUBLIC_GOOGLE_CLIENT_ID="$ARG_CLIENT_ID" \
+            --build-arg NEXT_PUBLIC_API_URL="$ARG_API_URL" \
+            --build-arg NEXT_PUBLIC_WS_URL="$ARG_WS_URL" \
+            -t "$REPO/frontend:latest" -t "$REPO/frontend:$SHA" ./frontend
+            
+          docker push "$REPO/frontend:latest"
+          docker push "$REPO/frontend:$SHA"
+
+      - name: Build & push (Workers)
+        shell: bash
+        run: |
+          REPO="ghcr.io/${GITHUB_REPOSITORY,,}"
+          SHA="${GITHUB_SHA::7}"
+
+          echo "== Building Workers =="
+          docker build -t "$REPO/workers:latest" -t "$REPO/workers:$SHA" ./workers
+          docker push "$REPO/workers:latest"
+          docker push "$REPO/workers:$SHA"
+
+  deploy:
+    name: Deploy to Droplet (Docker Compose)
+    needs: build_push
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -euo pipefail
+            
+            # Create app directory if it doesn't exist
+            mkdir -p "${{ secrets.APP_DIR }}"
+            cd "${{ secrets.APP_DIR }}"
+
+            echo "== Syncing Git =="
+            if [ ! -d ".git" ]; then
+              git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/CreatixaIT/Xeni_main.git .
+            else
+              git stash || true
+              git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/CreatixaIT/Xeni_main.git
+              git pull origin main
+            fi
+            
+            echo "== Injecting Environment Variables =="
+            # Write the shared secret to all service env files
+            printf '%s' "${{ secrets.ENV_PRODUCTION }}" > .env
+            printf '%s' "${{ secrets.ENV_PRODUCTION }}" > ./gateway/.env
+            printf '%s' "${{ secrets.ENV_PRODUCTION }}" > ./frontend/.env
+            printf '%s' "${{ secrets.ENV_PRODUCTION }}" > ./workers/.env
+
+            echo "== Login to GHCR =="
+            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "creatixait" --password-stdin
+
+            echo "== Pulling latest images =="
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml pull
+
+            echo "== Starting all services =="
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --remove-orphans --force-recreate
+
+            echo "== Waiting for gateway to be ready =="
+            sleep 10
+            curl -fsS http://127.0.0.1:8080/health || echo "WARNING: Gateway health check did not respond"
+
+            echo "== Running containers =="
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml ps
+
+            echo "== Cleanup old images =="
+            docker image prune -f
