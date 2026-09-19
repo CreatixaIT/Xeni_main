@@ -29,15 +29,17 @@ func (c *Cart) BeforeCreate(tx *gorm.DB) error {
 
 // CartItem represents the cart_items table.
 type CartItem struct {
-	ID        uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4();primaryKey" json:"id"`
-	CartID    uuid.UUID `gorm:"type:uuid;not null;index" json:"cart_id"`
-	ProductID uuid.UUID `gorm:"type:uuid;not null;index" json:"product_id"`
-	Quantity  int       `gorm:"not null;default:1" json:"quantity"`
-	CreatedAt time.Time `gorm:"autoCreateTime" json:"created_at"`
-	UpdatedAt time.Time `gorm:"autoUpdateTime" json:"updated_at"`
+	ID        uuid.UUID  `gorm:"type:uuid;default:uuid_generate_v4();primaryKey" json:"id"`
+	CartID    uuid.UUID  `gorm:"type:uuid;not null;index" json:"cart_id"`
+	ProductID uuid.UUID  `gorm:"type:uuid;not null;index" json:"product_id"`
+	VariantID *uuid.UUID `gorm:"type:uuid;index" json:"variant_id,omitempty"` // Nullable for non-variant products
+	Quantity  int        `gorm:"not null;default:1" json:"quantity"`
+	CreatedAt time.Time  `gorm:"autoCreateTime" json:"created_at"`
+	UpdatedAt time.Time  `gorm:"autoUpdateTime" json:"updated_at"`
 
-	Cart    Cart    `gorm:"foreignKey:CartID;constraint:OnDelete:CASCADE" json:"-"`
-	Product Product `gorm:"foreignKey:ProductID;constraint:OnDelete:CASCADE" json:"product,omitempty"`
+	Cart    Cart            `gorm:"foreignKey:CartID;constraint:OnDelete:CASCADE" json:"-"`
+	Product Product         `gorm:"foreignKey:ProductID;constraint:OnDelete:CASCADE" json:"product,omitempty"`
+	Variant *ProductVariant `gorm:"foreignKey:VariantID;constraint:OnDelete:SET NULL" json:"variant,omitempty"`
 }
 
 func (ci *CartItem) BeforeCreate(tx *gorm.DB) error {

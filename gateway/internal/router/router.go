@@ -324,6 +324,8 @@ func Setup(
 	adminGroup.Put("/users/:id/status", adminHandler.ChangeUserStatus)
 	adminGroup.Delete("/users/:id", middleware.RBACMiddleware(models.RoleSuperAdmin), adminHandler.DeleteUser)
 
+	adminGroup.Put("/products/:id/out-of-stock", buyerHandler.ManualUpdateProductOutOfStock)
+
 	adminGroup.Get("/users/:id/tasks", adminHandler.GetUserTasks)
 	adminGroup.Get("/users/:id/conversations", adminHandler.GetUserConversations)
 	adminGroup.Get("/tasks", adminHandler.ListAllTasks)

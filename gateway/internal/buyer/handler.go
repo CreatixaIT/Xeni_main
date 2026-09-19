@@ -24,8 +24,9 @@ type GetOrCreateCartRequest struct {
 }
 
 type AddCartItemRequest struct {
-	ProductID string `json:"product_id" validate:"required"`
-	Quantity  int    `json:"quantity" validate:"required,min=1"`
+	ProductID string  `json:"product_id" validate:"required"`
+	VariantID *string `json:"variant_id,omitempty"`
+	Quantity  int     `json:"quantity" validate:"required,min=1"`
 }
 
 type UpdateCartItemRequest struct {
@@ -46,11 +47,13 @@ func (h *Handler) GetOrCreateCart(c *fiber.Ctx) error {
 		userUUID := uuid.MustParse(userID)
 		err = h.DB.Where("user_id = ? AND expires_at > ?", &userUUID, time.Now()).
 			Preload("CartItems.Product").
+			Preload("CartItems.Variant").
 			First(&cart).Error
 	} else if sessionID != "" {
 		// Guest user: get cart by session_id
 		err = h.DB.Where("session_id = ? AND expires_at > ?", sessionID, time.Now()).
 			Preload("CartItems.Product").
+			Preload("CartItems.Variant").
 			First(&cart).Error
 	} else {
 		// No user or session - create guest cart with new session
@@ -116,6 +119,30 @@ func (h *Handler) AddItem(c *fiber.Ctx) error {
 		return response.BadRequest(c, "Product not found or inactive")
 	}
 
+	// Validate variant selection
+	var variantID *uuid.UUID
+	if req.VariantID != nil {
+		if !product.HasVariants {
+			return response.BadRequest(c, "Product does not have variants")
+		}
+		variantUUID, err := uuid.Parse(*req.VariantID)
+		if err != nil {
+			return response.BadRequest(c, "Invalid variant ID")
+		}
+		variantID = &variantUUID
+
+		// Verify variant exists, belongs to product, is active, and has stock
+		var variant models.ProductVariant
+		if err := h.DB.Where("id = ? AND product_id = ? AND is_active = ? AND stock > 0",
+			variantUUID, productID, true).First(&variant).Error; err != nil {
+			return response.BadRequest(c, "Variant not found, inactive, or out of stock")
+		}
+	} else {
+		if product.HasVariants {
+			return response.BadRequest(c, "Variant selection required for this product")
+		}
+	}
+
 	// Get or create cart
 	var cart models.Cart
 	var errCart error
@@ -151,16 +178,22 @@ func (h *Handler) AddItem(c *fiber.Ctx) error {
 		return response.InternalError(c)
 	}
 
-	// Check if item already exists in cart
+	// Check if item already exists in cart (uniqueness: cart + product + variant)
 	var cartItem models.CartItem
-	err = h.DB.Where("cart_id = ? AND product_id = ?", cart.ID, productID).
-		First(&cartItem).Error
+	if variantID != nil {
+		err = h.DB.Where("cart_id = ? AND product_id = ? AND variant_id = ?", cart.ID, productID, *variantID).
+			First(&cartItem).Error
+	} else {
+		err = h.DB.Where("cart_id = ? AND product_id = ? AND variant_id IS NULL", cart.ID, productID).
+			First(&cartItem).Error
+	}
 
 	if err == gorm.ErrRecordNotFound {
 		// Create new cart item
 		cartItem = models.CartItem{
 			CartID:    cart.ID,
 			ProductID: productID,
+			VariantID: variantID,
 			Quantity:  req.Quantity,
 		}
 		if err := h.DB.Create(&cartItem).Error; err != nil {
@@ -176,8 +209,8 @@ func (h *Handler) AddItem(c *fiber.Ctx) error {
 		}
 	}
 
-	// Reload cart with items
-	h.DB.Preload("CartItems.Product").First(&cart, cart.ID)
+	// Reload cart with items and variants
+	h.DB.Preload("CartItems.Product").Preload("CartItems.Variant").First(&cart, cart.ID)
 
 	return response.Success(c, cart)
 }
@@ -234,7 +267,7 @@ func (h *Handler) UpdateItem(c *fiber.Ctx) error {
 
 	// Reload cart
 	var cart models.Cart
-	h.DB.Preload("CartItems.Product").First(&cart, cartItem.CartID)
+	h.DB.Preload("CartItems.Product").Preload("CartItems.Variant").First(&cart, cartItem.CartID)
 
 	return response.Success(c, cart)
 }
@@ -278,7 +311,7 @@ func (h *Handler) RemoveItem(c *fiber.Ctx) error {
 
 	// Reload cart
 	var cart models.Cart
-	h.DB.Preload("CartItems.Product").First(&cart, cartItem.CartID)
+	h.DB.Preload("CartItems.Product").Preload("CartItems.Variant").First(&cart, cartItem.CartID)
 
 	return response.Success(c, cart)
 }

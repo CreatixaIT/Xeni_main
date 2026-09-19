@@ -99,6 +99,9 @@ func autoMigrate(db *gorm.DB) error {
 		&models.Payment{},
 		&models.AgentTask{},
 		&models.AuditLog{},
+		// Buyer commerce
+		&models.Cart{},
+		&models.CartItem{},
 		// Admin dashboard tables
 		&models.ContentSection{},
 		&models.Review{},
