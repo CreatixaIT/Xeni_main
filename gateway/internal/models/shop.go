@@ -9,41 +9,52 @@ import (
 
 // ── Shop ──
 
+// StoreTheme represents the visual theme for a seller's E-Pic storefront.
+type StoreTheme string
+
+const (
+	StoreThemeModern   StoreTheme = "modern"   // Modern / Minimal 3D
+	StoreThemeLuxury   StoreTheme = "luxury"   // Luxury / Premium 3D
+	StoreThemeColorful StoreTheme = "colorful" // Colorful / Dynamic 3D
+)
+
 // Shop represents the shops table.
 type Shop struct {
-	ID                      uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4();primaryKey" json:"id"`
-	UserID                  uuid.UUID `gorm:"type:uuid;uniqueIndex;not null" json:"user_id"`
-	ShopName                string    `gorm:"size:255;not null" json:"shop_name"`
-	ShopDescription         *string   `gorm:"type:text" json:"shop_description"`
-	ShopLogoURL             *string   `gorm:"type:text" json:"shop_logo_url"`
-	PreferredLanguage       string    `gorm:"size:5;default:'bn';not null" json:"preferred_language"`
-	CourierPreference       string    `gorm:"size:20;default:'pathao';not null" json:"courier_preference"`
-	BkashMerchantNumber     *string   `gorm:"size:20" json:"bkash_merchant_number"`
-	NagadMerchantNumber     *string   `gorm:"size:20" json:"nagad_merchant_number"`
-	WhatsAppNumber          *string   `gorm:"column:whatsapp_number;size:20" json:"whatsapp_number"`
-	OwnerMobile             *string   `gorm:"size:20" json:"owner_mobile"`
-	District                *string   `gorm:"size:100" json:"district"`
-	DeliveryChargeInside    float64   `gorm:"type:decimal(8,2);default:60;not null" json:"delivery_charge_inside"`
-	DeliveryChargeOutside   float64   `gorm:"type:decimal(8,2);default:120;not null" json:"delivery_charge_outside"`
-	PaymentVerificationMode string    `gorm:"size:10;default:'manual';not null" json:"payment_verification_mode"`
-	BkashAppKey             *string   `gorm:"size:255" json:"bkash_app_key"`
-	BkashAppSecret          *string   `gorm:"size:255" json:"-"`
-	BkashUsername           *string   `gorm:"size:100" json:"-"`
-	BkashPassword           *string   `gorm:"size:255" json:"-"`
-	NagadMerchantID         *string   `gorm:"size:255" json:"nagad_merchant_id"`
-	NagadMerchantKey        *string   `gorm:"size:255" json:"-"`
-	PathaoClientID          *string   `gorm:"size:255" json:"-"`
-	PathaoClientSecret      *string   `gorm:"size:255" json:"-"`
-	PathaoUsername          *string   `gorm:"size:100" json:"-"`
-	PathaoPassword          *string   `gorm:"size:255" json:"-"`
-	SteadfastAPIKey         *string   `gorm:"size:255" json:"-"`
-	SteadfastSecretKey      *string   `gorm:"size:255" json:"-"`
-	AutoReplyEnabled        bool      `gorm:"default:true;not null" json:"auto_reply_enabled"`
-	AutoOrderEnabled        bool      `gorm:"default:true;not null" json:"auto_order_enabled"`
-	Integrations            JSON      `gorm:"type:jsonb;default:'{}'" json:"integrations"`
-	CustomAgentRules        *string   `gorm:"type:text" json:"custom_agent_rules"`
-	CreatedAt               time.Time `gorm:"autoCreateTime" json:"created_at"`
-	UpdatedAt               time.Time `gorm:"autoUpdateTime" json:"updated_at"`
+	ID                      uuid.UUID  `gorm:"type:uuid;default:uuid_generate_v4();primaryKey" json:"id"`
+	UserID                  uuid.UUID  `gorm:"type:uuid;uniqueIndex;not null" json:"user_id"`
+	ShopSlug                *string    `gorm:"size:100;uniqueIndex" json:"shop_slug"`
+	ShopName                string     `gorm:"size:255;not null" json:"shop_name"`
+	ShopDescription         *string    `gorm:"type:text" json:"shop_description"`
+	ShopLogoURL             *string    `gorm:"type:text" json:"shop_logo_url"`
+	PreferredLanguage       string     `gorm:"size:5;default:'bn';not null" json:"preferred_language"`
+	CourierPreference       string     `gorm:"size:20;default:'pathao';not null" json:"courier_preference"`
+	BkashMerchantNumber     *string    `gorm:"size:20" json:"bkash_merchant_number"`
+	NagadMerchantNumber     *string    `gorm:"size:20" json:"nagad_merchant_number"`
+	WhatsAppNumber          *string    `gorm:"column:whatsapp_number;size:20" json:"whatsapp_number"`
+	OwnerMobile             *string    `gorm:"size:20" json:"owner_mobile"`
+	District                *string    `gorm:"size:100" json:"district"`
+	DeliveryChargeInside    float64    `gorm:"type:decimal(8,2);default:60;not null" json:"delivery_charge_inside"`
+	DeliveryChargeOutside   float64    `gorm:"type:decimal(8,2);default:120;not null" json:"delivery_charge_outside"`
+	PaymentVerificationMode string     `gorm:"size:10;default:'manual';not null" json:"payment_verification_mode"`
+	StoreTheme              StoreTheme `gorm:"size:20;default:'modern';not null" json:"store_theme"`
+	BkashAppKey             *string    `gorm:"size:255" json:"bkash_app_key"`
+	BkashAppSecret          *string    `gorm:"size:255" json:"-"`
+	BkashUsername           *string    `gorm:"size:100" json:"-"`
+	BkashPassword           *string    `gorm:"size:255" json:"-"`
+	NagadMerchantID         *string    `gorm:"size:255" json:"nagad_merchant_id"`
+	NagadMerchantKey        *string    `gorm:"size:255" json:"-"`
+	PathaoClientID          *string    `gorm:"size:255" json:"-"`
+	PathaoClientSecret      *string    `gorm:"size:255" json:"-"`
+	PathaoUsername          *string    `gorm:"size:100" json:"-"`
+	PathaoPassword          *string    `gorm:"size:255" json:"-"`
+	SteadfastAPIKey         *string    `gorm:"size:255" json:"-"`
+	SteadfastSecretKey      *string    `gorm:"size:255" json:"-"`
+	AutoReplyEnabled        bool       `gorm:"default:true;not null" json:"auto_reply_enabled"`
+	AutoOrderEnabled        bool       `gorm:"default:true;not null" json:"auto_order_enabled"`
+	Integrations            JSON       `gorm:"type:jsonb;default:'{}'" json:"integrations"`
+	CustomAgentRules        *string    `gorm:"type:text" json:"custom_agent_rules"`
+	CreatedAt               time.Time  `gorm:"autoCreateTime" json:"created_at"`
+	UpdatedAt               time.Time  `gorm:"autoUpdateTime" json:"updated_at"`
 
 	User           User            `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
 	ConnectedPages []ConnectedPage `gorm:"foreignKey:ShopID" json:"connected_pages,omitempty"`
@@ -78,6 +89,59 @@ type ConnectedPage struct {
 func (cp *ConnectedPage) BeforeCreate(tx *gorm.DB) error {
 	if cp.ID == uuid.Nil {
 		cp.ID = uuid.New()
+	}
+	return nil
+}
+
+// ── SocialLink ──
+
+// SocialLink represents social media links for a shop.
+type SocialLink struct {
+	ID        uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4();primaryKey" json:"id"`
+	ShopID    uuid.UUID `gorm:"type:uuid;not null;index" json:"shop_id"`
+	Platform  string    `gorm:"size:50;not null" json:"platform"`
+	URL       string    `gorm:"type:text;not null" json:"url"`
+	Handle    *string   `gorm:"size:255" json:"handle"`
+	IsActive  bool      `gorm:"default:true;not null" json:"is_active"`
+	CreatedAt time.Time `gorm:"autoCreateTime" json:"created_at"`
+	UpdatedAt time.Time `gorm:"autoUpdateTime" json:"updated_at"`
+
+	Shop Shop `gorm:"foreignKey:ShopID;constraint:OnDelete:CASCADE" json:"-"`
+}
+
+func (sl *SocialLink) BeforeCreate(tx *gorm.DB) error {
+	if sl.ID == uuid.Nil {
+		sl.ID = uuid.New()
+	}
+	return nil
+}
+
+// ── PersonalXeniConfig ──
+
+// PersonalXeniConfig represents the personal AI configuration for a shop.
+type PersonalXeniConfig struct {
+	ID                         uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4();primaryKey" json:"id"`
+	ShopID                     uuid.UUID `gorm:"type:uuid;not null;uniqueIndex" json:"shop_id"`
+	BusinessDescription        *string   `gorm:"type:text" json:"business_description"`
+	BrandIdentity              *string   `gorm:"type:text" json:"brand_identity"`
+	TargetCustomers            *string   `gorm:"type:text" json:"target_customers"`
+	PreferredTone              string    `gorm:"size:50;default:'friendly'" json:"preferred_tone"`
+	WritingStyle               *string   `gorm:"type:text" json:"writing_style"`
+	WordsToUse                 *string   `gorm:"type:text" json:"words_to_use"`
+	WordsToAvoid               *string   `gorm:"type:text" json:"words_to_avoid"`
+	SalesPreferences           *string   `gorm:"type:text" json:"sales_preferences"`
+	CustomerServicePreferences *string   `gorm:"type:text" json:"customer_service_preferences"`
+	SocialMediaStyle           *string   `gorm:"type:text" json:"social_media_style"`
+	ProductContentStyle        *string   `gorm:"type:text" json:"product_content_style"`
+	CreatedAt                  time.Time `gorm:"autoCreateTime" json:"created_at"`
+	UpdatedAt                  time.Time `gorm:"autoUpdateTime" json:"updated_at"`
+
+	Shop Shop `gorm:"foreignKey:ShopID;constraint:OnDelete:CASCADE" json:"-"`
+}
+
+func (pxc *PersonalXeniConfig) BeforeCreate(tx *gorm.DB) error {
+	if pxc.ID == uuid.Nil {
+		pxc.ID = uuid.New()
 	}
 	return nil
 }

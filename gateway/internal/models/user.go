@@ -12,6 +12,7 @@ type UserRole string
 
 const (
 	RoleUser       UserRole = "user"
+	RoleSeller     UserRole = "seller"
 	RoleAdmin      UserRole = "admin"
 	RoleSuperAdmin UserRole = "super_admin"
 )

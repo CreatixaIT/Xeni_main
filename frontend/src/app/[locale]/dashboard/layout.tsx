@@ -7,7 +7,7 @@ import { useThemeStore } from '@/store/theme';
 import {
   Sparkles, LayoutDashboard, ShoppingBag, Package, MessageCircle,
   BarChart3, Globe2, Settings, LogOut, CreditCard, Shield,
-  Sun, Moon, Store, ChevronLeft, ChevronRight, Wand2, HelpCircle
+  Sun, Moon, Store, ChevronLeft, ChevronRight, Wand2, HelpCircle, Brain
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '@/lib/api';
@@ -20,8 +20,9 @@ const sidebarLinks = [
   { href: '/dashboard/creative', label: 'Creative', icon: Wand2 },
   { href: '/dashboard/orders', label: 'Orders', icon: ShoppingBag },
   { href: '/dashboard/conversations', label: 'Inbox', icon: MessageCircle },
-  { href: '/dashboard/pages', label: 'FB Pages', icon: Globe2 },
+  { href: '/dashboard/social', label: 'Social Media', icon: Globe2 },
   { href: '/dashboard/analytics', label: 'Analytics', icon: BarChart3 },
+  { href: '/dashboard/personal-xeni', label: 'Personal Xeni', icon: Brain },
   { href: '/dashboard/rules', label: 'AI Rules Engine', icon: Sparkles },
   { href: '/dashboard/setup', label: 'Setup Guide', icon: HelpCircle },
 ];

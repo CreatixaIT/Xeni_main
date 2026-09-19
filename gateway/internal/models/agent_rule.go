@@ -47,6 +47,18 @@ const (
 	RuleCategoryBusinessHours = "business_hours"
 	RuleCategoryPromotions    = "promotions"
 	RuleCategoryCustom        = "custom"
+	// Personal Xeni categories
+	RuleCategoryBusinessDescription = "business_description"
+	RuleCategoryBrandIdentity       = "brand_identity"
+	RuleCategoryTargetCustomers     = "target_customers"
+	RuleCategoryTone                = "tone"
+	RuleCategoryWritingStyle        = "writing_style"
+	RuleCategoryWordsToUse          = "words_to_use"
+	RuleCategoryWordsToAvoid        = "words_to_avoid"
+	RuleCategorySalesPreferences    = "sales_preferences"
+	RuleCategoryCustomerService     = "customer_service"
+	RuleCategorySocialMediaStyle    = "social_media_style"
+	RuleCategoryProductContent      = "product_content"
 )
 
 // DefaultGlobalRules returns the comprehensive default set of platform-wide F-commerce rules.

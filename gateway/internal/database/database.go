@@ -85,6 +85,8 @@ func autoMigrate(db *gorm.DB) error {
 		&models.OTPCode{},
 		&models.Shop{},
 		&models.ConnectedPage{},
+		&models.SocialLink{},
+		&models.PersonalXeniConfig{},
 		&models.Product{},
 		&models.ProductVariant{},
 		&models.InventoryLog{},

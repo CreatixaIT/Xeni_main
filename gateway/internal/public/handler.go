@@ -25,57 +25,59 @@ func NewHandler(db *gorm.DB) *Handler {
 
 // PublicProduct represents a sanitized product for public API responses.
 type PublicProduct struct {
-	ID              string         `json:"id"`
-	Name            string         `json:"name"`
-	NameBN          *string        `json:"name_bn,omitempty"`
-	Description     *string        `json:"description,omitempty"`
-	DescriptionBN   *string        `json:"description_bn,omitempty"`
-	Price           float64        `json:"price"`
-	SKU             *string        `json:"sku,omitempty"`
-	CurrentStock    int            `json:"current_stock"`
-	IsOutOfStock    bool           `json:"is_out_of_stock"`
-	IsActive        bool           `json:"is_active"`
-	Images          []string       `json:"images"`
-	Variants        []PublicVariant `json:"variants,omitempty"`
-	Store           PublicStore    `json:"store"`
-	Category        *PublicCategory `json:"category,omitempty"`
-	Categories      []PublicCategory `json:"categories,omitempty"`
-	CreatedAt       time.Time      `json:"created_at"`
-	UpdatedAt       time.Time      `json:"updated_at"`
+	ID            string           `json:"id"`
+	Name          string           `json:"name"`
+	NameBN        *string          `json:"name_bn,omitempty"`
+	Description   *string          `json:"description,omitempty"`
+	DescriptionBN *string          `json:"description_bn,omitempty"`
+	Price         float64          `json:"price"`
+	SKU           *string          `json:"sku,omitempty"`
+	CurrentStock  int              `json:"current_stock"`
+	IsOutOfStock  bool             `json:"is_out_of_stock"`
+	IsActive      bool             `json:"is_active"`
+	Images        []string         `json:"images"`
+	Variants      []PublicVariant  `json:"variants,omitempty"`
+	Store         PublicStore      `json:"store"`
+	Category      *PublicCategory  `json:"category,omitempty"`
+	Categories    []PublicCategory `json:"categories,omitempty"`
+	CreatedAt     time.Time        `json:"created_at"`
+	UpdatedAt     time.Time        `json:"updated_at"`
 }
 
 // PublicVariant represents a sanitized product variant for public API responses.
 type PublicVariant struct {
-	ID            string   `json:"id"`
-	SKU           string   `json:"sku"`
-	Color         *string  `json:"color,omitempty"`
-	Size          *string  `json:"size,omitempty"`
-	PriceModifier float64  `json:"price_modifier"`
-	Stock         int      `json:"stock"`
-	IsActive      bool     `json:"is_active"`
+	ID            string  `json:"id"`
+	SKU           string  `json:"sku"`
+	Color         *string `json:"color,omitempty"`
+	Size          *string `json:"size,omitempty"`
+	PriceModifier float64 `json:"price_modifier"`
+	Stock         int     `json:"stock"`
+	IsActive      bool    `json:"is_active"`
 }
 
 // PublicStore represents a sanitized store for public API responses.
 type PublicStore struct {
-	ID              string  `json:"id"`
-	ShopName        string  `json:"shop_name"`
-	ShopDescription *string `json:"shop_description,omitempty"`
-	ShopLogoURL     *string `json:"shop_logo_url,omitempty"`
-	District        *string `json:"district,omitempty"`
-	PreferredLanguage string `json:"preferred_language"`
+	ID                string  `json:"id"`
+	ShopSlug          *string `json:"shop_slug,omitempty"`
+	ShopName          string  `json:"shop_name"`
+	ShopDescription   *string `json:"shop_description,omitempty"`
+	ShopLogoURL       *string `json:"shop_logo_url,omitempty"`
+	District          *string `json:"district,omitempty"`
+	PreferredLanguage string  `json:"preferred_language"`
+	StoreTheme        string  `json:"store_theme"`
 }
 
 // PublicCategory represents a sanitized category for public API responses.
 type PublicCategory struct {
-	ID          string         `json:"id"`
-	Slug        string         `json:"slug"`
-	Name        string         `json:"name"`
-	NameBN      *string        `json:"name_bn,omitempty"`
-	ParentID    *string        `json:"parent_id,omitempty"`
-	IsActive    bool           `json:"is_active"`
-	Description *string        `json:"description,omitempty"`
-	DisplayOrder int           `json:"display_order"`
-	Children    []PublicCategory `json:"children,omitempty"`
+	ID           string           `json:"id"`
+	Slug         string           `json:"slug"`
+	Name         string           `json:"name"`
+	NameBN       *string          `json:"name_bn,omitempty"`
+	ParentID     *string          `json:"parent_id,omitempty"`
+	IsActive     bool             `json:"is_active"`
+	Description  *string          `json:"description,omitempty"`
+	DisplayOrder int              `json:"display_order"`
+	Children     []PublicCategory `json:"children,omitempty"`
 }
 
 // ListProducts handles GET /api/public/v1/products
@@ -101,7 +103,7 @@ func (h *Handler) ListProducts(c *fiber.Ctx) error {
 
 	// Search filter
 	if search != "" {
-		query = query.Where("name ILIKE ? OR name_bn ILIKE ? OR sku ILIKE ?", 
+		query = query.Where("name ILIKE ? OR name_bn ILIKE ? OR sku ILIKE ?",
 			"%"+search+"%", "%"+search+"%", "%"+search+"%")
 	}
 
@@ -223,7 +225,7 @@ func (h *Handler) ListStores(c *fiber.Ctx) error {
 
 	// Search filter
 	if search != "" {
-		query = query.Where("shop_name ILIKE ? OR shop_description ILIKE ?", 
+		query = query.Where("shop_name ILIKE ? OR shop_description ILIKE ?",
 			"%"+search+"%", "%"+search+"%")
 	}
 
@@ -276,8 +278,8 @@ func (h *Handler) GetStore(c *fiber.Ctx) error {
 	if parsedUUID, err := uuid.Parse(identifier); err == nil {
 		query = query.Where("id = ?", parsedUUID)
 	} else {
-		// If not UUID, return error for now (slug support to be added)
-		return response.BadRequest(c, "Invalid store identifier. Use UUID.")
+		// If not UUID, try slug
+		query = query.Where("shop_slug = ?", identifier)
 	}
 
 	if err := query.First(&shop).Error; err != nil {
@@ -303,8 +305,8 @@ func (h *Handler) GetStore(c *fiber.Ctx) error {
 	}
 
 	return response.Success(c, map[string]interface{}{
-		"store":     h.toPublicStore(shop),
-		"products":  publicProducts,
+		"store":         h.toPublicStore(shop),
+		"products":      publicProducts,
 		"product_count": len(products),
 	})
 }
@@ -344,6 +346,88 @@ func (h *Handler) GetCategory(c *fiber.Ctx) error {
 	}
 
 	return response.Success(c, h.toPublicCategory(category))
+}
+
+// GetFeaturedProducts handles GET /api/public/v1/products/featured
+func (h *Handler) GetFeaturedProducts(c *fiber.Ctx) error {
+	perPage := c.QueryInt("per_page", 12)
+	if perPage < 1 || perPage > 50 {
+		perPage = 12
+	}
+
+	// For now, return products with highest stock as "featured"
+	// In future, this could be based on actual sales data, admin flags, etc.
+	var products []models.Product
+	h.DB.Model(&models.Product{}).
+		Where("is_active = ?", true).
+		Preload("Shop").
+		Preload("Variants").
+		Preload("Category").
+		Preload("Categories").
+		Order("current_stock DESC, created_at DESC").
+		Limit(perPage).
+		Find(&products)
+
+	publicProducts := make([]PublicProduct, len(products))
+	for i, product := range products {
+		publicProducts[i] = h.toPublicProduct(product)
+	}
+
+	return response.Success(c, publicProducts)
+}
+
+// GetBestSellingProducts handles GET /api/public/v1/products/bestselling
+func (h *Handler) GetBestSellingProducts(c *fiber.Ctx) error {
+	perPage := c.QueryInt("per_page", 12)
+	if perPage < 1 || perPage > 50 {
+		perPage = 12
+	}
+
+	// Return products sorted by total_sold (sales volume)
+	var products []models.Product
+	h.DB.Model(&models.Product{}).
+		Where("is_active = ?", true).
+		Preload("Shop").
+		Preload("Variants").
+		Preload("Category").
+		Preload("Categories").
+		Order("total_sold DESC, created_at DESC").
+		Limit(perPage).
+		Find(&products)
+
+	publicProducts := make([]PublicProduct, len(products))
+	for i, product := range products {
+		publicProducts[i] = h.toPublicProduct(product)
+	}
+
+	return response.Success(c, publicProducts)
+}
+
+// GetNewProducts handles GET /api/public/v1/products/new
+func (h *Handler) GetNewProducts(c *fiber.Ctx) error {
+	perPage := c.QueryInt("per_page", 12)
+	if perPage < 1 || perPage > 50 {
+		perPage = 12
+	}
+
+	// Return newest products
+	var products []models.Product
+	h.DB.Model(&models.Product{}).
+		Where("is_active = ?", true).
+		Preload("Shop").
+		Preload("Variants").
+		Preload("Category").
+		Preload("Categories").
+		Order("created_at DESC").
+		Limit(perPage).
+		Find(&products)
+
+	publicProducts := make([]PublicProduct, len(products))
+	for i, product := range products {
+		publicProducts[i] = h.toPublicProduct(product)
+	}
+
+	return response.Success(c, publicProducts)
 }
 
 // Helper functions to convert models to public responses
@@ -403,12 +487,14 @@ func (h *Handler) toPublicProduct(product models.Product) PublicProduct {
 
 func (h *Handler) toPublicStore(store models.Shop) PublicStore {
 	return PublicStore{
-		ID:              store.ID.String(),
-		ShopName:        store.ShopName,
-		ShopDescription: store.ShopDescription,
-		ShopLogoURL:     store.ShopLogoURL,
-		District:        store.District,
+		ID:                store.ID.String(),
+		ShopSlug:          store.ShopSlug,
+		ShopName:          store.ShopName,
+		ShopDescription:   store.ShopDescription,
+		ShopLogoURL:       store.ShopLogoURL,
+		District:          store.District,
 		PreferredLanguage: store.PreferredLanguage,
+		StoreTheme:        string(store.StoreTheme),
 	}
 }
 
