@@ -46,6 +46,7 @@ func (h *Handler) CreateShop(c *fiber.Ctx) error {
 		DeliveryChargeInside  *float64 `json:"delivery_charge_inside"`
 		DeliveryChargeOutside *float64 `json:"delivery_charge_outside"`
 		StoreTheme            string   `json:"store_theme"`
+		StorefrontPublished   bool     `json:"storefront_published"`
 	}
 	if err := c.BodyParser(&req); err != nil {
 		return response.BadRequest(c, "Invalid request body")
@@ -76,6 +77,7 @@ func (h *Handler) CreateShop(c *fiber.Ctx) error {
 		District:                req.District,
 		PaymentVerificationMode: "manual",
 		StoreTheme:              models.StoreTheme(req.StoreTheme),
+		StorefrontPublished:     req.StorefrontPublished,
 	}
 	if req.DeliveryChargeInside != nil {
 		shop.DeliveryChargeInside = *req.DeliveryChargeInside
@@ -186,6 +188,7 @@ func (h *Handler) UpdateMyShop(c *fiber.Ctx) error {
 		DeliveryChargeOutside   *float64                `json:"delivery_charge_outside"`
 		PaymentVerificationMode *string                 `json:"payment_verification_mode"`
 		StoreTheme              *string                 `json:"store_theme"`
+		StorefrontPublished     *bool                   `json:"storefront_published"`
 		BkashAppKey             *string                 `json:"bkash_app_key"`
 		BkashAppSecret          *string                 `json:"bkash_app_secret"`
 		NagadMerchantID         *string                 `json:"nagad_merchant_id"`
@@ -242,10 +245,13 @@ func (h *Handler) UpdateMyShop(c *fiber.Ctx) error {
 	}
 	if req.StoreTheme != nil {
 		// Validate theme value
-		validThemes := map[string]bool{"modern": true, "luxury": true, "colorful": true}
+		validThemes := map[string]bool{"modern": true, "fashion": true, "luxury": true, "futuristic": true, "minimal": true, "colorful": true}
 		if validThemes[*req.StoreTheme] {
 			updates["store_theme"] = *req.StoreTheme
 		}
+	}
+	if req.StorefrontPublished != nil {
+		updates["storefront_published"] = *req.StorefrontPublished
 	}
 	if req.BkashAppKey != nil {
 		updates["bkash_app_key"] = *req.BkashAppKey

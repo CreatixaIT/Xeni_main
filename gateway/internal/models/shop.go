@@ -13,9 +13,12 @@ import (
 type StoreTheme string
 
 const (
-	StoreThemeModern   StoreTheme = "modern"   // Modern / Minimal 3D
-	StoreThemeLuxury   StoreTheme = "luxury"   // Luxury / Premium 3D
-	StoreThemeColorful StoreTheme = "colorful" // Colorful / Dynamic 3D
+	StoreThemeModern     StoreTheme = "modern"     // Modern / Minimal 3D
+	StoreThemeFashion    StoreTheme = "fashion"    // Fashion focused
+	StoreThemeLuxury     StoreTheme = "luxury"     // Luxury / Premium 3D
+	StoreThemeFuturistic StoreTheme = "futuristic" // Futuristic / Sci-fi
+	StoreThemeMinimal    StoreTheme = "minimal"    // Minimal / Clean
+	StoreThemeColorful   StoreTheme = "colorful"   // Colorful / Dynamic 3D
 )
 
 // Shop represents the shops table.
@@ -37,6 +40,7 @@ type Shop struct {
 	DeliveryChargeOutside   float64    `gorm:"type:decimal(8,2);default:120;not null" json:"delivery_charge_outside"`
 	PaymentVerificationMode string     `gorm:"size:10;default:'manual';not null" json:"payment_verification_mode"`
 	StoreTheme              StoreTheme `gorm:"size:20;default:'modern';not null" json:"store_theme"`
+	StorefrontPublished     bool       `gorm:"default:false;not null" json:"storefront_published"`
 	BkashAppKey             *string    `gorm:"size:255" json:"bkash_app_key"`
 	BkashAppSecret          *string    `gorm:"size:255" json:"-"`
 	BkashUsername           *string    `gorm:"size:100" json:"-"`
