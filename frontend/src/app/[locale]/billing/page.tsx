@@ -94,7 +94,7 @@ export default function BillingPage() {
   const handleSubscribe = async (tier: string) => {
     if (tier === 'enterprise') {
       // Open email for enterprise
-      window.location.href = 'mailto:sales@xeni.xentroinfotech.com?subject=Enterprise Plan Inquiry';
+      window.location.href = `mailto:${process.env.NEXT_PUBLIC_SALES_EMAIL || 'sales@xeni.xentroinfotech.com'}?subject=Enterprise Plan Inquiry`;
       return;
     }
     setLoading(tier);

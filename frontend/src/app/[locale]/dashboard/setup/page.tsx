@@ -171,7 +171,7 @@ export default function SetupGuidePage() {
           {t('help_text')}
         </p>
         <a
-          href="mailto:support@xeni.xentroinfotech.com"
+          href={`mailto:${process.env.NEXT_PUBLIC_SUPPORT_EMAIL || 'support@xeni.xentroinfotech.com'}`}
           className="btn-primary inline-flex items-center gap-2 text-sm"
         >
           <MessageCircle className="w-4 h-4" /> {t('contact_support')}
