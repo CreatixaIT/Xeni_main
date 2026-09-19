@@ -18,3 +18,7 @@ gateway/.DS_Store
 
 # Test files (not ready for commit)
 gateway/internal/public/handler_test.go
+
+# Frontend build artifacts
+frontend/.next
+frontend/node_modules
