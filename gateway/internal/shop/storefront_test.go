@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
 	"gorm.io/gorm"
 
 	"github.com/xeni-ai/gateway/internal/models"

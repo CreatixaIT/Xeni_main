@@ -2,6 +2,7 @@ package buyer
 
 import (
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -272,7 +273,7 @@ func createTestCart(db *gorm.DB, userID *uuid.UUID, sessionID *string) (*models.
 	cart := &models.Cart{
 		UserID:    userID,
 		SessionID: sessionID,
-		ExpiresAt: models.GetDefaultCartExpiration(),
+		ExpiresAt: time.Now().Add(24 * time.Hour), // Default 24-hour expiration
 	}
 	if err := db.Create(cart).Error; err != nil {
 		return nil, err
