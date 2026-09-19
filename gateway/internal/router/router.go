@@ -26,11 +26,13 @@ import (
 	"github.com/xeni-ai/gateway/internal/notifications"
 	"github.com/xeni-ai/gateway/internal/orders"
 	"github.com/xeni-ai/gateway/internal/pages"
+	"github.com/xeni-ai/gateway/internal/personalxeni"
 	"github.com/xeni-ai/gateway/internal/products"
 	"github.com/xeni-ai/gateway/internal/public"
 	"github.com/xeni-ai/gateway/internal/rabbitmq"
 	"github.com/xeni-ai/gateway/internal/rules"
 	"github.com/xeni-ai/gateway/internal/shop"
+	"github.com/xeni-ai/gateway/internal/social"
 	"github.com/xeni-ai/gateway/internal/storage"
 	"github.com/xeni-ai/gateway/internal/user"
 	ws "github.com/xeni-ai/gateway/internal/websocket"
@@ -116,6 +118,12 @@ func Setup(
 
 	authHandler := auth.NewHandler(db, redis, jwtManager, cfg.App.FrontendURL, emailSvc, googleOAuth)
 	authGroup := api.Group("/auth")
+
+	// Allow OPTIONS requests for CORS preflight (bypass rate limiting)
+	authGroup.Options("/*", func(c *fiber.Ctx) error {
+		return c.SendStatus(204)
+	})
+
 	authRateLimit := middleware.RateLimitMiddleware(redis, 5, time.Minute, "auth")
 
 	authGroup.Post("/register", authRateLimit, authHandler.Register)
@@ -177,6 +185,19 @@ func Setup(
 	// Auth routes for Pages (don't use the standard AuthMiddleware as they might use query tokens or redirect)
 	api.Get("/oauth/pages/facebook", pagesHandler.OAuthLogin)
 	api.Get("/oauth/pages/facebook/callback", pagesHandler.OAuthCallback)
+
+	// ── Social Media Routes ──
+	socialHandler := social.NewHandler(db)
+	socialGroup := api.Group("/social", middleware.AuthMiddleware(jwtManager, redis), apiRateLimit)
+	socialGroup.Get("/links", socialHandler.ListSocialLinks)
+	socialGroup.Post("/links", socialHandler.CreateSocialLink)
+	socialGroup.Delete("/links/:id", socialHandler.DeleteSocialLink)
+
+	// ── Personal Xeni Routes ──
+	personalXeniHandler := personalxeni.NewHandler(db)
+	personalXeniGroup := api.Group("/personal-xeni", middleware.AuthMiddleware(jwtManager, redis), apiRateLimit)
+	personalXeniGroup.Get("/config", personalXeniHandler.GetPersonalXeniConfig)
+	personalXeniGroup.Put("/config", personalXeniHandler.UpdatePersonalXeniConfig)
 
 	// ── Product Routes ──
 	productsHandler := products.NewHandler(db, spacesClient)
@@ -269,7 +290,10 @@ func Setup(
 	publicRateLimit := middleware.RateLimitMiddleware(redis, 100, time.Minute, "public")
 	publicGroup.Use(publicRateLimit)
 
-	// Public product endpoints
+	// Public product endpoints (specific routes must come before parameterized routes)
+	publicGroup.Get("/products/featured", publicHandler.GetFeaturedProducts)
+	publicGroup.Get("/products/bestselling", publicHandler.GetBestSellingProducts)
+	publicGroup.Get("/products/new", publicHandler.GetNewProducts)
 	publicGroup.Get("/products", publicHandler.ListProducts)
 	publicGroup.Get("/products/:identifier", publicHandler.GetProduct)
 
