@@ -57,14 +57,15 @@ type PublicVariant struct {
 
 // PublicStore represents a sanitized store for public API responses.
 type PublicStore struct {
-	ID                string  `json:"id"`
-	ShopSlug          *string `json:"shop_slug,omitempty"`
-	ShopName          string  `json:"shop_name"`
-	ShopDescription   *string `json:"shop_description,omitempty"`
-	ShopLogoURL       *string `json:"shop_logo_url,omitempty"`
-	District          *string `json:"district,omitempty"`
-	PreferredLanguage string  `json:"preferred_language"`
-	StoreTheme        string  `json:"store_theme"`
+	ID                  string  `json:"id"`
+	ShopSlug            *string `json:"shop_slug,omitempty"`
+	ShopName            string  `json:"shop_name"`
+	ShopDescription     *string `json:"shop_description,omitempty"`
+	ShopLogoURL         *string `json:"shop_logo_url,omitempty"`
+	District            *string `json:"district,omitempty"`
+	PreferredLanguage   string  `json:"preferred_language"`
+	StoreTheme          string  `json:"store_theme"`
+	StorefrontPublished bool    `json:"storefront_published"`
 }
 
 // PublicCategory represents a sanitized category for public API responses.
@@ -99,7 +100,10 @@ func (h *Handler) ListProducts(c *fiber.Ctx) error {
 	}
 
 	// Build query
-	query := h.DB.Model(&models.Product{}).Where("is_active = ?", true)
+	query := h.DB.Model(&models.Product{}).
+		Joins("JOIN shops ON products.shop_id = shops.id").
+		Where("is_active = ?", true).
+		Where("shops.storefront_published = ?", true)
 
 	// Search filter
 	if search != "" {
@@ -179,10 +183,13 @@ func (h *Handler) GetProduct(c *fiber.Ctx) error {
 
 	// Try parsing as UUID first
 	var product models.Product
-	query := h.DB.Model(&models.Product{}).Where("is_active = ?", true)
+	query := h.DB.Model(&models.Product{}).
+		Joins("JOIN shops ON products.shop_id = shops.id").
+		Where("is_active = ?", true).
+		Where("shops.storefront_published = ?", true)
 
 	if parsedUUID, err := uuid.Parse(identifier); err == nil {
-		query = query.Where("id = ?", parsedUUID)
+		query = query.Where("products.id = ?", parsedUUID)
 	} else {
 		// If not UUID, search by slug (we'll need to add slug field to products in future)
 		// For now, only UUID is supported
@@ -211,6 +218,7 @@ func (h *Handler) ListStores(c *fiber.Ctx) error {
 	perPage := c.QueryInt("per_page", 20)
 	search := c.Query("search")
 	district := c.Query("district")
+	published := c.Query("published", "true") // Default to only published stores
 
 	// Validate pagination
 	if page < 1 {
@@ -222,6 +230,11 @@ func (h *Handler) ListStores(c *fiber.Ctx) error {
 
 	// Build query
 	query := h.DB.Model(&models.Shop{})
+
+	// Filter by published status (default to true for public API)
+	if published == "true" {
+		query = query.Where("storefront_published = ?", true)
+	}
 
 	// Search filter
 	if search != "" {
@@ -359,7 +372,9 @@ func (h *Handler) GetFeaturedProducts(c *fiber.Ctx) error {
 	// In future, this could be based on actual sales data, admin flags, etc.
 	var products []models.Product
 	h.DB.Model(&models.Product{}).
+		Joins("JOIN shops ON products.shop_id = shops.id").
 		Where("is_active = ?", true).
+		Where("shops.storefront_published = ?", true).
 		Preload("Shop").
 		Preload("Variants").
 		Preload("Category").
@@ -386,7 +401,9 @@ func (h *Handler) GetBestSellingProducts(c *fiber.Ctx) error {
 	// Return products sorted by total_sold (sales volume)
 	var products []models.Product
 	h.DB.Model(&models.Product{}).
+		Joins("JOIN shops ON products.shop_id = shops.id").
 		Where("is_active = ?", true).
+		Where("shops.storefront_published = ?", true).
 		Preload("Shop").
 		Preload("Variants").
 		Preload("Category").
@@ -413,7 +430,9 @@ func (h *Handler) GetNewProducts(c *fiber.Ctx) error {
 	// Return newest products
 	var products []models.Product
 	h.DB.Model(&models.Product{}).
+		Joins("JOIN shops ON products.shop_id = shops.id").
 		Where("is_active = ?", true).
+		Where("shops.storefront_published = ?", true).
 		Preload("Shop").
 		Preload("Variants").
 		Preload("Category").
@@ -487,14 +506,15 @@ func (h *Handler) toPublicProduct(product models.Product) PublicProduct {
 
 func (h *Handler) toPublicStore(store models.Shop) PublicStore {
 	return PublicStore{
-		ID:                store.ID.String(),
-		ShopSlug:          store.ShopSlug,
-		ShopName:          store.ShopName,
-		ShopDescription:   store.ShopDescription,
-		ShopLogoURL:       store.ShopLogoURL,
-		District:          store.District,
-		PreferredLanguage: store.PreferredLanguage,
-		StoreTheme:        string(store.StoreTheme),
+		ID:                  store.ID.String(),
+		ShopSlug:            store.ShopSlug,
+		ShopName:            store.ShopName,
+		ShopDescription:     store.ShopDescription,
+		ShopLogoURL:         store.ShopLogoURL,
+		District:            store.District,
+		PreferredLanguage:   store.PreferredLanguage,
+		StoreTheme:          string(store.StoreTheme),
+		StorefrontPublished: store.StorefrontPublished,
 	}
 }
 

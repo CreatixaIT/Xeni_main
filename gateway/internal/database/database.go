@@ -35,10 +35,20 @@ func Connect(cfg *config.DBConfig, env string) (*gorm.DB, error) {
 
 	slog.Info("connected to PostgreSQL")
 
-	// Auto-migrate in development (schema is managed via init.sql in production)
-	// Auto-migrate always to ensure schema synchronization
-	if err := autoMigrate(db); err != nil {
-		slog.Warn("auto-migration threw a warning, check schema state", "error", err)
+	// Auto-migrate only in development
+	// Production uses explicit SQL migrations for schema control
+	if env != "production" {
+		if err := autoMigrate(db); err != nil {
+			slog.Warn("auto-migration threw a warning, check schema state", "error", err)
+		}
+	} else {
+		slog.Info("production environment: skipping AutoMigrate, using explicit migrations")
+	}
+
+	// Always run minimal column ensures for backward compatibility
+	// These are safe, non-destructive operations
+	if err := ensureColumns(db); err != nil {
+		slog.Warn("column ensure check failed", "error", err)
 	}
 
 	// Seed default data
@@ -190,6 +200,49 @@ func autoMigrate(db *gorm.DB) error {
 			END IF;
 		END $$
 	`)
+
+	return nil
+}
+
+// ensureColumns performs safe, non-destructive column existence checks
+// This is run in production to ensure new columns exist without full AutoMigrate
+func ensureColumns(db *gorm.DB) error {
+	// Check for storefront_published column
+	var storefrontPublishedExists int
+	db.Raw(`
+		SELECT COUNT(*)
+		FROM information_schema.columns
+		WHERE table_name = 'shops'
+		AND column_name = 'storefront_published'
+	`).Scan(&storefrontPublishedExists)
+
+	if storefrontPublishedExists == 0 {
+		if err := db.Exec("ALTER TABLE shops ADD COLUMN storefront_published BOOLEAN DEFAULT false NOT NULL").Error; err != nil {
+			slog.Warn("could not add storefront_published column", "error", err)
+		} else {
+			slog.Info("added storefront_published column to shops table")
+		}
+	}
+
+	// Check for variant_id column in cart_items
+	var variantIDExists int
+	db.Raw(`
+		SELECT COUNT(*)
+		FROM information_schema.columns
+		WHERE table_name = 'cart_items'
+		AND column_name = 'variant_id'
+	`).Scan(&variantIDExists)
+
+	if variantIDExists == 0 {
+		if err := db.Exec("ALTER TABLE cart_items ADD COLUMN variant_id UUID").Error; err != nil {
+			slog.Warn("could not add variant_id column", "error", err)
+		} else {
+			slog.Info("added variant_id column to cart_items table")
+		}
+		if err := db.Exec("CREATE INDEX IF NOT EXISTS idx_cart_items_variant_id ON cart_items(variant_id)").Error; err != nil {
+			slog.Warn("could not create variant_id index", "error", err)
+		}
+	}
 
 	return nil
 }
