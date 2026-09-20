@@ -3,7 +3,7 @@
 # ============================================================
 
 # ── Build Stage ──
-FROM golang:1.24-alpine AS builder
+FROM golang:1.25-alpine AS builder
 RUN apk add --no-cache git ca-certificates
 WORKDIR /build
 COPY go.mod ./
@@ -14,7 +14,7 @@ RUN go mod tidy
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o gateway ./cmd/main.go
 
 # ── Development Stage ──
-FROM golang:1.24-alpine AS development
+FROM golang:1.25-alpine AS development
 RUN apk add --no-cache git
 WORKDIR /app
 COPY go.mod ./
