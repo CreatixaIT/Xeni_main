@@ -89,7 +89,7 @@ export default function AnalyticsPage() {
   useEffect(() => {
     if (!accessToken) return;
 
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_XENI_API_URL || 'https://xeni.xentroinfotech.com';
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_XENI_API_URL || 'http://localhost:8080';
     const wsBase = apiUrl.replace('https://', 'wss://').replace('http://', 'ws://');
     const wsUrl = `${wsBase}/ws?token=${accessToken}`;
 

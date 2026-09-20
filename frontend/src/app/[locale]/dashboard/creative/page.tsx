@@ -23,7 +23,7 @@ export default function CreativePage() {
     if (!accessToken) return;
 
     // Derive WS URL from API URL (avoid double-pathing from NEXT_PUBLIC_WS_URL)
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_XENI_API_URL || 'https://xeni.xentroinfotech.com';
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_XENI_API_URL || 'http://localhost:8080';
     const wsBase = apiUrl.replace('https://', 'wss://').replace('http://', 'ws://');
     const wsUrl = `${wsBase}/ws?token=${accessToken}`;
 
