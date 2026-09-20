@@ -168,7 +168,14 @@ func (h *Handler) Register(c *fiber.Ctx) error {
 	h.DB.Create(&otpCode)
 
 	// Send verification email via Resend API
-	go h.Email.SendOTPVerification(user.Email, otp)
+	go func() {
+		if err := h.Email.SendOTPVerification(user.Email, otp); err != nil {
+			slog.Error("Failed to send verification email",
+				"user_id", user.ID.String(),
+				"email", user.Email,
+				"error", err)
+		}
+	}()
 
 	// Create starter subscription by default
 	var starterPlan models.Plan
@@ -389,8 +396,15 @@ func (h *Handler) ResendOTP(c *fiber.Ctx) error {
 	h.DB.Create(&otpCode)
 
 	// Send via Resend API
-	go h.Email.SendOTPVerification(user.Email, otp)
-	slog.Info("OTP resent via Resend", "user_id", user.ID.String(), "email", user.Email)
+	go func() {
+		if err := h.Email.SendOTPVerification(user.Email, otp); err != nil {
+			slog.Error("Failed to resend OTP email",
+				"user_id", user.ID.String(),
+				"email", user.Email,
+				"error", err)
+		}
+	}()
+	slog.Info("OTP generated for resend", "user_id", user.ID.String(), "email", user.Email)
 
 	return response.Success(c, map[string]string{"message": "If the email exists, a new OTP has been sent."})
 }

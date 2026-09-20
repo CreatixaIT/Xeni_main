@@ -82,10 +82,15 @@ func (s *ResendService) SendOTPVerification(to string, otp string) error {
 
 	_, err := s.client.Emails.Send(params)
 	if err != nil {
-		slog.Error("Failed to send OTP email via Resend", "email", to, "error", err)
-		return err
+		slog.Error("Failed to send OTP email via Resend",
+			"email", to,
+			"error", err,
+			"purpose", "email_verification")
+		return fmt.Errorf("email delivery failed: %w", err)
 	}
-	slog.Info("Successfully dispatched OTP email via Resend", "email", to)
+	slog.Info("Successfully dispatched OTP email via Resend",
+		"email", to,
+		"purpose", "email_verification")
 	return nil
 }
 
@@ -144,9 +149,14 @@ func (s *ResendService) SendPasswordReset(to string, otp string) error {
 
 	_, err := s.client.Emails.Send(params)
 	if err != nil {
-		slog.Error("Failed to send Password Reset email", "email", to, "error", err)
-		return err
+		slog.Error("Failed to send Password Reset email",
+			"email", to,
+			"error", err,
+			"purpose", "password_reset")
+		return fmt.Errorf("email delivery failed: %w", err)
 	}
-	slog.Info("Successfully dispatched Password Reset email", "email", to)
+	slog.Info("Successfully dispatched Password Reset email",
+		"email", to,
+		"purpose", "password_reset")
 	return nil
 }
