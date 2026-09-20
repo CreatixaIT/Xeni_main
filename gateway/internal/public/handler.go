@@ -295,6 +295,9 @@ func (h *Handler) GetStore(c *fiber.Ctx) error {
 		query = query.Where("shop_slug = ?", identifier)
 	}
 
+	// Filter by publication status for public API
+	query = query.Where("storefront_published = ?", true)
+
 	if err := query.First(&shop).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return response.NotFound(c, "Store not found")
@@ -303,7 +306,7 @@ func (h *Handler) GetStore(c *fiber.Ctx) error {
 		return response.InternalError(c)
 	}
 
-	// Fetch store's products
+	// Fetch store's products (store is already verified as published above)
 	var products []models.Product
 	h.DB.Model(&models.Product{}).
 		Where("shop_id = ? AND is_active = ?", shop.ID, true).
