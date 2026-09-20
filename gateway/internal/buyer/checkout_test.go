@@ -231,10 +231,36 @@ func TestCheckoutIdempotency(t *testing.T) {
 	// Requirements:
 	// 1. Create cart with items
 	// 2. Checkout with checkout_id = "test-123"
-	// 3. Verify order created
+	// 3. Verify order created with checkout_id = "test-123"
 	// 4. Checkout again with same checkout_id = "test-123"
 	// 5. Verify original order returned (no duplicate)
-	// 6. Verify only one order in database
+	// 6. Verify only one order in database with checkout_id = "test-123"
+	// 7. Verify database unique constraint prevents duplicate checkout_id
+	t.Skip("Requires test database setup")
+}
+
+// TestCheckoutIdempotencyConcurrent tests that concurrent checkout with same checkout_id results in exactly one order
+func TestCheckoutIdempotencyConcurrent(t *testing.T) {
+	// Requirements:
+	// 1. Create cart with items
+	// 2. Simulate two concurrent checkout requests with same checkout_id = "test-concurrent"
+	// 3. Verify exactly one order created (database unique constraint enforces this)
+	// 4. Verify one request succeeds, one returns existing order
+	// 5. Verify no duplicate inventory deduction
+	// 6. Verify no duplicate inventory log
+	t.Skip("Requires test database setup with concurrent test capability")
+}
+
+// TestCheckoutIdempotencyDifferentValues tests that different checkout_ids create separate orders
+func TestCheckoutIdempotencyDifferentValues(t *testing.T) {
+	// Requirements:
+	// 1. Create cart with items
+	// 2. Checkout with checkout_id = "test-abc"
+	// 3. Verify order created
+	// 4. Create cart with items again
+	// 5. Checkout with checkout_id = "test-def"
+	// 6. Verify separate order created
+	// 7. Verify both orders exist in database
 	t.Skip("Requires test database setup")
 }
 

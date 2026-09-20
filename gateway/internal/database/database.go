@@ -244,6 +244,26 @@ func ensureColumns(db *gorm.DB) error {
 		}
 	}
 
+	// Check for checkout_id column in orders
+	var checkoutIDExists int
+	db.Raw(`
+		SELECT COUNT(*)
+		FROM information_schema.columns
+		WHERE table_name = 'orders'
+		AND column_name = 'checkout_id'
+	`).Scan(&checkoutIDExists)
+
+	if checkoutIDExists == 0 {
+		if err := db.Exec("ALTER TABLE orders ADD COLUMN checkout_id VARCHAR(255)").Error; err != nil {
+			slog.Warn("could not add checkout_id column", "error", err)
+		} else {
+			slog.Info("added checkout_id column to orders table")
+		}
+		if err := db.Exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_checkout_id ON orders(checkout_id) WHERE checkout_id IS NOT NULL").Error; err != nil {
+			slog.Warn("could not create checkout_id unique index", "error", err)
+		}
+	}
+
 	return nil
 }
 

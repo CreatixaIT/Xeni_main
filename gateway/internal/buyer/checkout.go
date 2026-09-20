@@ -82,10 +82,11 @@ func (h *Handler) Checkout(c *fiber.Ctx) error {
 		return response.BadRequest(c, "Cart is empty")
 	}
 
-	// Idempotency check: if checkout_id provided, check for existing order in notes
+	// Idempotency check: if checkout_id provided, check for existing order
+	// Database-level unique constraint prevents duplicate checkout_id
 	if req.CheckoutID != nil && *req.CheckoutID != "" {
 		var existingOrder models.Order
-		checkoutQuery := h.DB.Where("notes LIKE ?", "%checkout_id:"+*req.CheckoutID+"%")
+		checkoutQuery := h.DB.Where("checkout_id = ?", *req.CheckoutID)
 		if hasUser && userID != "" {
 			userUUID := uuid.MustParse(userID)
 			checkoutQuery = checkoutQuery.Where("buyer_id = ?", userUUID)
@@ -266,12 +267,6 @@ func (h *Handler) Checkout(c *fiber.Ctx) error {
 				buyerID = &buyerUUID
 			}
 
-			// Add checkout_id to notes for idempotency tracking
-			orderNotes := ""
-			if req.CheckoutID != nil && *req.CheckoutID != "" {
-				orderNotes = "checkout_id:" + *req.CheckoutID
-			}
-
 			order := models.Order{
 				ShopID:          shopID,
 				BuyerID:         buyerID,
@@ -284,7 +279,7 @@ func (h *Handler) Checkout(c *fiber.Ctx) error {
 				PaymentStatus:   models.OrderPayPending,
 				DeliveryStatus:  models.DeliveryPending,
 				PlacedBy:        models.PlacedByHuman,
-				Notes:           &orderNotes,
+				CheckoutID:      req.CheckoutID,
 			}
 
 			if err := tx.Create(&order).Error; err != nil {

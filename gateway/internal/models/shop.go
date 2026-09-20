@@ -246,6 +246,7 @@ type Order struct {
 	CourierBookingResponse JSON                `gorm:"type:jsonb" json:"courier_booking_response"`
 	MessengerThreadID      *uuid.UUID          `gorm:"type:uuid" json:"messenger_thread_id"`
 	PlacedBy               OrderPlacedBy       `gorm:"type:order_placed_by;default:'human';not null" json:"placed_by"`
+	CheckoutID             *string             `gorm:"size:255;index" json:"checkout_id,omitempty"`
 	Notes                  *string             `gorm:"type:text" json:"notes"`
 	VerifiedBy             *string             `gorm:"size:20" json:"verified_by"`
 	VerifiedAt             *time.Time          `json:"verified_at"`
